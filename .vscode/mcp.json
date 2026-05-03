@@ -1,0 +1,15 @@
+{
+	"servers": {
+		"GitKraken": {
+			"command": "/Users/nickwu/Library/Application Support/Code/User/globalStorage/eamodio.gitlens/gk",
+			"type": "stdio",
+			"args": [
+				"mcp",
+				"--host=vscode",
+				"--source=gitlens",
+				"--scheme=vscode"
+			]
+		}
+	},
+	"inputs": []
+}
