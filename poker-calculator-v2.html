@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Night Calculator (v2 — Families)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111827; color: #e5e7eb; min-height: 100vh; }
+.app { max-width: 860px; margin: 0 auto; padding: 20px; }
+
+h1 { text-align: center; font-size: 2rem; margin-bottom: 6px; color: #fbbf24; }
+.subtitle { text-align: center; color: #6b7280; margin-bottom: 24px; font-size: 0.95rem; }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; background: #1f2937; padding: 6px; border-radius: 12px; }
+.tab { position: relative; padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; background: transparent; color: #9ca3af; transition: all 0.18s; flex: 1; min-width: 72px; }
+.tab.active { background: #fbbf24; color: #111827; font-weight: 700; }
+.tab:hover:not(.active) { background: #374151; color: #e5e7eb; }
+.tab-badge { position: absolute; top: 3px; right: 4px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 800; min-width: 14px; height: 14px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1; }
+.tab.active .tab-badge { background: #7f1d1d; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.card { background: #1f2937; border-radius: 14px; padding: 20px; margin-bottom: 14px; border: 1px solid #374151; }
+.card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: #fbbf24; letter-spacing: 0.02em; }
+
+.form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 110px; }
+label { font-size: 0.8rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
+input[type=text], input[type=number], select {
+  background: #111827; border: 1px solid #374151; border-radius: 8px;
+  padding: 9px 12px; color: #e5e7eb; font-size: 0.95rem; width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { outline: none; border-color: #fbbf24; }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: #fbbf24; cursor: pointer; flex-shrink: 0; }
+
+.btn { padding: 9px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; white-space: nowrap; }
+.btn-primary { background: #fbbf24; color: #111827; }
+.btn-primary:hover { background: #fcd34d; transform: translateY(-1px); }
+.btn-secondary { background: #374151; color: #e5e7eb; }
+.btn-secondary:hover { background: #4b5563; }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-danger:hover { background: #ef4444; }
+.btn-success { background: #065f46; color: #6ee7b7; border: 1px solid #047857; }
+.btn-success:hover { background: #047857; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; border-radius: 6px; }
+.btn-block { width: 100%; margin-top: 6px; }
+
+.row-item { display: flex; align-items: center; justify-content: space-between; background: #111827; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; border: 1px solid #1f2937; }
+.row-item:last-child { margin-bottom: 0; }
+.item-name { font-weight: 600; font-size: 0.95rem; }
+.item-meta { font-size: 0.82rem; color: #6b7280; margin-top: 2px; }
+.item-value { font-weight: 700; color: #34d399; font-size: 1rem; }
+
+.section-label { font-size: 0.78rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 8px; }
+
+.tag { display: inline-block; background: #374151; color: #9ca3af; padding: 1px 7px; border-radius: 4px; font-size: 0.75rem; margin-right: 4px; }
+.tag-blue { background: #1e3a5f; color: #60a5fa; }
+.tag-yellow { background: #3d2e00; color: #fbbf24; }
+.tag-green { background: #064e3b; color: #34d399; }
+.tag-red { background: #450a0a; color: #f87171; }
+
+.net-pos { color: #34d399; }
+.net-neg { color: #f87171; }
+
+.summary-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.summary-table th { text-align: left; padding: 8px 10px; color: #6b7280; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #374151; }
+.summary-table td { padding: 10px 10px; border-bottom: 1px solid #1f2937; vertical-align: middle; }
+.summary-table tr:last-child td { border-bottom: none; }
+.summary-table tbody tr:hover td { background: #1a2535; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+.badge-green { background: #064e3b; color: #34d399; }
+.badge-red { background: #450a0a; color: #f87171; }
+.badge-gray { background: #374151; color: #9ca3af; }
+
+.txn-item { display: flex; align-items: center; gap: 10px; background: #111827; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; border: 1px solid #374151; }
+.txn-from { color: #f87171; font-weight: 700; font-size: 1rem; }
+.txn-arrow { color: #fbbf24; font-size: 1.2rem; flex-shrink: 0; }
+.txn-to { color: #34d399; font-weight: 700; font-size: 1rem; }
+.txn-amount { margin-left: auto; font-weight: 800; font-size: 1.15rem; color: #fbbf24; flex-shrink: 0; }
+
+.info-bar { display: flex; gap: 20px; flex-wrap: wrap; background: #111827; border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; color: #6b7280; border: 1px solid #374151; align-items: center; }
+.info-bar span { color: #fbbf24; font-weight: 700; }
+
+.dinner-row { display: flex; align-items: center; gap: 10px; background: #111827; border-radius: 8px; padding: 9px 14px; margin-bottom: 6px; border: 1px solid #1f2937; }
+.dinner-row label { text-transform: none; font-size: 0.92rem; font-weight: 500; color: #e5e7eb; letter-spacing: 0; cursor: pointer; flex: 1; margin: 0; }
+.dinner-share { margin-left: auto; font-weight: 700; color: #fbbf24; font-size: 0.9rem; min-width: 60px; text-align: right; }
+
+.empty { text-align: center; padding: 32px; color: #4b5563; font-size: 0.9rem; }
+
+.alert { padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; margin-bottom: 12px; line-height: 1.5; }
+.alert-info    { background: #1e3a5f; color: #93c5fd; border: 1px solid #1d4ed8; }
+.alert-success { background: #064e3b; color: #6ee7b7; border: 1px solid #065f46; }
+.alert-warn    { background: #422006; color: #fbbf24; border: 1px solid #92400e; }
+.alert-error   { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+
+.rate-display { background: #111827; border-radius: 8px; padding: 10px 14px; color: #6b7280; font-size: 0.88rem; margin-top: 8px; border: 1px solid #374151; }
+.rate-display span { color: #fbbf24; font-weight: 700; }
+
+.pot-bar { display: flex; gap: 16px; flex-wrap: wrap; }
+.pot-stat { flex: 1; min-width: 120px; background: #111827; border-radius: 8px; padding: 10px 14px; border: 1px solid #374151; }
+.pot-stat-label { font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.pot-stat-value { font-size: 1.15rem; font-weight: 800; color: #e5e7eb; }
+.pot-stat-value.green { color: #34d399; }
+.pot-stat-value.red { color: #f87171; }
+.pot-stat-value.yellow { color: #fbbf24; }
+
+.grand-total { text-align: right; font-size: 0.82rem; color: #6b7280; padding: 6px 10px; }
+
+.toggle-row { display: flex; gap: 6px; margin-bottom: 10px; }
+
+@media (max-width: 540px) {
+  .tab { padding: 7px 6px; font-size: 0.75rem; min-width: 52px; }
+  .summary-table th, .summary-table td { padding: 7px 6px; font-size: 0.8rem; }
+  h1 { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>&#127183; Poker Night</h1>
+  <p class="subtitle">Track buy-ins &bull; rebuys &bull; dinner &bull; cash outs &bull; families &bull; settle up</p>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-setup"   onclick="showTab(this,'setup')">&#9881; Setup</button>
+    <button class="tab"        id="tab-btn-players" onclick="showTab(this,'players')">&#128100; Players</button>
+    <button class="tab"        id="tab-btn-buyins"  onclick="showTab(this,'buyins')">&#128181; Buy-ins</button>
+    <button class="tab"        id="tab-btn-dinner"  onclick="showTab(this,'dinner')">&#127829; Dinner</button>
+    <button class="tab"        id="tab-btn-cashout" onclick="showTab(this,'cashout')">&#128176; Cash Out</button>
+    <button class="tab"        id="tab-btn-settle"  onclick="showTab(this,'settle')">&#9989; Settle</button>
+  </div>
+
+  <!-- ═══════════ SETUP ═══════════ -->
+  <div id="tab-setup" class="panel active">
+    <div class="card">
+      <h2>Chip Rate</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:14px">Define how many chips equal how much money</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Chips</label>
+          <input type="number" id="chip-count" value="100" min="1" step="1" />
+        </div>
+        <div style="padding-bottom:9px;color:#6b7280;font-size:1.3rem;font-weight:300">=</div>
+        <div class="form-group" style="max-width:90px">
+          <label>Symbol</label>
+          <input type="text" id="currency-symbol" value="£" maxlength="3" style="text-align:center" />
+        </div>
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="number" id="chip-money" value="1.00" min="0.01" step="0.01" />
+        </div>
+        <button class="btn btn-primary" onclick="saveChipRate(this)">Save</button>
+      </div>
+      <div class="rate-display">
+        Rate: <span id="rate-display">100 chips = £1.00</span>
+        &nbsp;|&nbsp; 1 chip = <span id="rate-per-chip">£0.0100</span>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <strong>Quick guide:</strong><br>
+      1&nbsp;Set chip rate &nbsp;&#8594;&nbsp;
+      2&nbsp;Add players &nbsp;&#8594;&nbsp;
+      3&nbsp;Log buy-ins &amp; rebuys &nbsp;&#8594;&nbsp;
+      4&nbsp;Log dinner payments &amp; who ate &nbsp;&#8594;&nbsp;
+      5&nbsp;Enter cash outs &nbsp;&#8594;&nbsp;
+      6&nbsp;View settlements
+    </div>
+
+    <div class="card">
+      <h2>&#128465; Danger Zone</h2>
+      <button class="btn btn-danger btn-block" onclick="clearAll()">Clear All Data &amp; Start Over</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ PLAYERS ═══════════ -->
+  <div id="tab-players" class="panel">
+    <div class="card">
+      <h2>Add Player</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="player-name" placeholder="e.g. Alice"
+                 onkeydown="if(event.key==='Enter')addPlayer()" />
+        </div>
+        <button class="btn btn-primary" onclick="addPlayer()">Add Player</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Player List</h2>
+      <div id="players-list"><div class="empty">No players added yet</div></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128106; Create Family</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Group players who shouldn't pay each other (e.g. couples, siblings, roommates).
+        Their nets are combined for settlement &mdash; they only transfer to/from people outside the group.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Family name</label>
+          <input type="text" id="family-name" placeholder="e.g. The Smiths" />
+        </div>
+      </div>
+      <div class="section-label">Members (pick 2 or more)</div>
+      <div id="family-form-members"><div class="empty">Add players first</div></div>
+      <button class="btn btn-primary btn-block" onclick="addFamily()">Create Family</button>
+    </div>
+
+    <div class="card">
+      <h2>Family List</h2>
+      <div id="families-list"><div class="empty">No families yet &mdash; everyone settles individually.</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BUY-INS ═══════════ -->
+  <div id="tab-buyins" class="panel">
+    <div class="card">
+      <h2>Log Buy-in / Rebuy</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Player</label>
+          <select id="buyin-player"></select>
+        </div>
+        <div class="form-group" style="max-width:150px">
+          <label>Amount</label>
+          <input type="number" id="buyin-amount" placeholder="0" min="0" step="any"
+                 onkeydown="if(event.key==='Enter')addBuyin()" />
+        </div>
+        <div class="form-group" style="max-width:115px">
+          <label>Unit</label>
+          <select id="buyin-unit">
+            <option value="chips">Chips</option>
+            <option value="money">Money</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addBuyin()">Log</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Buy-in History</h2>
+      <div id="buyin-summary"><div class="empty">No buy-ins logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DINNER ═══════════ -->
+  <div id="tab-dinner" class="panel">
+    <div class="card">
+      <h2>Add Dinner Bill</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Each bill has its own payer and split. Add as many as you need (e.g. food, drinks, dessert).
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="dinner-desc" placeholder="e.g. Pizza, Drinks..." />
+        </div>
+        <div class="form-group">
+          <label>Paid by</label>
+          <select id="dinner-payer"></select>
+        </div>
+        <div class="form-group" style="max-width:170px">
+          <label>Split mode</label>
+          <select id="dinner-split-mode" onchange="renderDinnerForm()">
+            <option value="equal">Equal split</option>
+            <option value="custom">Custom amounts</option>
+          </select>
+        </div>
+      </div>
+      <div id="dinner-form-detail"></div>
+      <button class="btn btn-primary btn-block" onclick="addDinner()">Add Dinner Bill</button>
+    </div>
+
+    <div class="card">
+      <h2>Logged Dinners</h2>
+      <div id="dinners-list"><div class="empty">No dinners logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CASH OUT ═══════════ -->
+  <div id="tab-cashout" class="panel">
+    <div class="card">
+      <h2>Log Cash Out</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Enter how many chips (or money) each player leaves with. Re-entering a player overwrites.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Player</label>
+          <select id="cashout-player"></select>
+        </div>
+        <div class="form-group" style="max-width:150px">
+          <label>Amount</label>
+          <input type="number" id="cashout-amount" placeholder="0" min="0" step="any"
+                 onkeydown="if(event.key==='Enter')setCashout()" />
+        </div>
+        <div class="form-group" style="max-width:115px">
+          <label>Unit</label>
+          <select id="cashout-unit">
+            <option value="chips">Chips</option>
+            <option value="money">Money</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="setCashout()">Set</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Cash Out Summary</h2>
+      <div id="cashout-summary"><div class="empty">No cash outs logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SETTLE ═══════════ -->
+  <div id="tab-settle" class="panel">
+
+    <div class="card">
+      <h2>&#127968; Pot Health Check</h2>
+      <div id="pot-check"></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128202; Net Positions</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Formula: <em>Cash Out &minus; Buy-ins &minus; Dinner Share + Dinner Paid</em>
+      </p>
+      <div id="settle-warnings"></div>
+      <div id="net-positions"><div class="empty">Add players and log data to see results</div></div>
+    </div>
+
+    <div class="card">
+      <h2>&#129309; Settlements</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">Minimum transfers to clear all debts</p>
+      <div id="settlements"><div class="empty">Nothing to settle yet</div></div>
+      <button class="btn btn-success btn-block" id="copy-btn" onclick="copySettlement()" style="display:none;margin-top:12px">
+        &#128203; Copy Settlement to Clipboard
+      </button>
+    </div>
+
+    <button class="btn btn-secondary btn-block" onclick="renderSettle()">&#8635; Recalculate</button>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────────
+const state = {
+  chipCount: 100,
+  chipMoney: 1.00,
+  currency: '£',
+  players: [],   // [{id, name}]
+  buyins: [],    // [{id, playerId, chips, originalAmount, unit}]
+  cashouts: {},  // {playerId: chips}
+  dinners: [],   // [{id, payerId, desc, splitMode:'equal'|'custom', totalAmount, participants:[playerId], shares:{playerId:amount}}]
+  families: [],  // [{id, name, memberIds:[playerId]}]
+};
+
+// ──────────────────────────────────────────
+//  HELPERS
+// ──────────────────────────────────────────
+const curr      = () => state.currency || '£';
+const chipVal   = () => state.chipMoney / state.chipCount;
+const c2m       = chips => chips * chipVal();
+const m2c       = money => money / chipVal();
+const toChips   = (amount, unit) => unit === 'chips' ? amount : m2c(amount);
+const fmtMoney  = n => curr() + Math.abs(n).toFixed(2);
+const fmtSigned = n => (n >= 0 ? '+' : '−') + curr() + Math.abs(n).toFixed(2);
+
+// ──────────────────────────────────────────
+//  PERSIST
+// ──────────────────────────────────────────
+function save() {
+  try { localStorage.setItem('poker_v5', JSON.stringify(state)); } catch(e) {}
+}
+function load() {
+  try {
+    let d = JSON.parse(localStorage.getItem('poker_v5') || 'null');
+    if (!d) {
+      const v4 = JSON.parse(localStorage.getItem('poker_v4') || 'null');
+      if (v4) d = { ...v4, families: [] };
+    }
+    if (!d) {
+      const v3 = JSON.parse(localStorage.getItem('poker_v3') || 'null');
+      if (v3) d = { ...migrateV3(v3), families: [] };
+    }
+    if (!d) return;
+    Object.assign(state, d);
+    state.cashouts = state.cashouts || {};
+    state.dinners  = state.dinners  || [];
+    state.families = state.families || [];
+    state.currency = state.currency || '£';
+  } catch(e) {}
+}
+
+function migrateV3(old) {
+  const eaters = old.dinnerEaters || [];
+  const dinners = (old.dinnerPayments || []).map(p => ({
+    id: p.id,
+    payerId: p.payerId,
+    desc: p.desc,
+    splitMode: 'equal',
+    totalAmount: p.amount,
+    participants: eaters.slice(),
+    shares: {},
+  }));
+  return {
+    chipCount: old.chipCount,
+    chipMoney: old.chipMoney,
+    currency:  old.currency,
+    players:   old.players  || [],
+    buyins:    old.buyins   || [],
+    cashouts:  old.cashouts || {},
+    dinners,
+  };
+}
+
+// ──────────────────────────────────────────
+//  TABS
+// ──────────────────────────────────────────
+function showTab(btn, name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ──────────────────────────────────────────
+//  SETUP
+// ──────────────────────────────────────────
+function saveChipRate(btn) {
+  const count = parseFloat(document.getElementById('chip-count').value);
+  const money = parseFloat(document.getElementById('chip-money').value);
+  const sym   = document.getElementById('currency-symbol').value.trim() || '£';
+  if (!count || !money || count <= 0 || money <= 0) {
+    alert('Please enter valid positive values.'); return;
+  }
+  state.chipCount = count;
+  state.chipMoney = money;
+  state.currency  = sym;
+  save();
+  renderAll();
+  btn.textContent = '✓ Saved';
+  setTimeout(() => btn.textContent = 'Save', 1400);
+}
+
+function clearAll() {
+  if (!confirm('Delete ALL data for this session — are you sure?')) return;
+  state.players = []; state.buyins = []; state.cashouts = {};
+  state.dinners = []; state.families = [];
+  save(); renderAll();
+}
+
+function updateRateDisplay() {
+  document.getElementById('chip-count').value       = state.chipCount;
+  document.getElementById('chip-money').value       = state.chipMoney.toFixed(2);
+  document.getElementById('currency-symbol').value  = state.currency;
+  document.getElementById('rate-display').textContent =
+    `${state.chipCount} chips = ${curr()}${state.chipMoney.toFixed(2)}`;
+  document.getElementById('rate-per-chip').textContent =
+    `${curr()}${chipVal().toFixed(4)}`;
+}
+
+// ──────────────────────────────────────────
+//  PLAYERS
+// ──────────────────────────────────────────
+function addPlayer() {
+  const el   = document.getElementById('player-name');
+  const name = el.value.trim();
+  if (!name) return;
+  if (state.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    alert('A player with this name already exists.'); return;
+  }
+  const id = 'p_' + Date.now();
+  state.players.push({ id, name });
+  el.value = '';
+  save(); renderAll();
+  el.focus();
+}
+
+function removePlayer(id) {
+  if (!confirm('Remove this player and all their data?')) return;
+  state.players = state.players.filter(p => p.id !== id);
+  state.buyins  = state.buyins.filter(b => b.playerId !== id);
+  state.dinners = state.dinners.filter(d => d.payerId !== id);
+  state.dinners.forEach(d => {
+    if (d.splitMode === 'custom' && d.shares && id in d.shares) {
+      d.totalAmount -= d.shares[id];
+      delete d.shares[id];
+    }
+    d.participants = d.participants.filter(pid => pid !== id);
+  });
+  state.dinners = state.dinners.filter(d => d.participants.length > 0 && d.totalAmount > 0);
+  state.families.forEach(f => { f.memberIds = f.memberIds.filter(pid => pid !== id); });
+  state.families = state.families.filter(f => f.memberIds.length >= 2);
+  delete state.cashouts[id];
+  save(); renderAll();
+}
+
+function renderPlayers() {
+  const el = document.getElementById('players-list');
+  if (!state.players.length) {
+    el.innerHTML = '<div class="empty">No players added yet</div>'; return;
+  }
+  el.innerHTML = state.players.map(p => {
+    const buyinTotal = state.buyins
+      .filter(b => b.playerId === p.id)
+      .reduce((s, b) => s + c2m(b.chips), 0);
+    const nBuyins = state.buyins.filter(b => b.playerId === p.id).length;
+    const co = state.cashouts[p.id] !== undefined ? c2m(state.cashouts[p.id]) : null;
+    const fam = getPlayerFamily(p.id);
+    return `<div class="row-item">
+      <div>
+        <div class="item-name">
+          ${p.name}
+          ${fam ? `<span class="tag tag-green" style="margin-left:6px">&#128106; ${fam.name}</span>` : ''}
+        </div>
+        <div class="item-meta">
+          ${nBuyins} buy-in${nBuyins !== 1 ? 's' : ''} &mdash; total ${curr()}${buyinTotal.toFixed(2)}
+          &nbsp;&bull;&nbsp;
+          Cash out: ${co !== null ? curr()+co.toFixed(2) : '<span style="color:#4b5563">not set</span>'}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removePlayer('${p.id}')">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  BUY-INS
+// ──────────────────────────────────────────
+function addBuyin() {
+  const playerId  = document.getElementById('buyin-player').value;
+  const rawAmount = parseFloat(document.getElementById('buyin-amount').value);
+  const unit      = document.getElementById('buyin-unit').value;
+  if (!playerId || !rawAmount || rawAmount <= 0) {
+    alert('Select a player and enter a valid amount.'); return;
+  }
+  const chips = toChips(rawAmount, unit);
+  state.buyins.push({ id: 'b_' + Date.now(), playerId, chips, originalAmount: rawAmount, unit });
+  document.getElementById('buyin-amount').value = '';
+  save(); renderAll();
+  document.getElementById('buyin-amount').focus();
+}
+
+function removeBuyin(id) {
+  state.buyins = state.buyins.filter(b => b.id !== id);
+  save(); renderAll();
+}
+
+function renderBuyins() {
+  const el = document.getElementById('buyin-summary');
+  if (!state.players.length) {
+    el.innerHTML = '<div class="empty">Add players first</div>'; return;
+  }
+  let html = '';
+  state.players.forEach(p => {
+    const pb    = state.buyins.filter(b => b.playerId === p.id);
+    const total = pb.reduce((s, b) => s + c2m(b.chips), 0);
+    html += `<div class="section-label">${p.name} &mdash; Total: ${curr()}${total.toFixed(2)}</div>`;
+    if (!pb.length) {
+      html += `<div style="color:#4b5563;font-size:0.85rem;padding:4px 0 10px">No buy-ins logged</div>`;
+      return;
+    }
+    pb.forEach((b, i) => {
+      const label = i === 0 ? 'Buy-in' : `Rebuy #${i}`;
+      const moneyStr = b.unit === 'chips'
+        ? `${b.originalAmount} chips = ${curr()}${c2m(b.chips).toFixed(2)}`
+        : `${curr()}${b.originalAmount.toFixed(2)}`;
+      html += `<div class="row-item">
+        <div>
+          <span class="tag tag-yellow">${label}</span>
+          <span style="margin-left:6px">${moneyStr}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeBuyin('${b.id}')">&#x2715;</button>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+// ──────────────────────────────────────────
+//  FAMILIES
+// ──────────────────────────────────────────
+function getPlayerFamily(playerId) {
+  return state.families.find(f => f.memberIds.includes(playerId));
+}
+
+function getUnassignedPlayers() {
+  return state.players.filter(p => !getPlayerFamily(p.id));
+}
+
+function addFamily() {
+  const name = document.getElementById('family-name').value.trim();
+  if (!name) { alert('Enter a family name.'); return; }
+  const memberIds = Array.from(
+    document.querySelectorAll('#family-form-members input[type=checkbox]:checked')
+  ).map(cb => cb.dataset.player);
+  if (memberIds.length < 2) { alert('Pick at least 2 players.'); return; }
+  // Yank these players out of any existing family first.
+  state.families.forEach(f => {
+    f.memberIds = f.memberIds.filter(id => !memberIds.includes(id));
+  });
+  state.families = state.families.filter(f => f.memberIds.length >= 2);
+  state.families.push({ id: 'f_' + Date.now(), name, memberIds });
+  document.getElementById('family-name').value = '';
+  save(); renderAll();
+}
+
+function removeFamily(id) {
+  if (!confirm('Remove this family grouping?')) return;
+  state.families = state.families.filter(f => f.id !== id);
+  save(); renderAll();
+}
+
+function removeFamilyMember(familyId, playerId) {
+  const f = state.families.find(x => x.id === familyId);
+  if (!f) return;
+  f.memberIds = f.memberIds.filter(id => id !== playerId);
+  if (f.memberIds.length < 2) {
+    state.families = state.families.filter(x => x.id !== familyId);
+  }
+  save(); renderAll();
+}
+
+function addFamilyMember(familyId) {
+  const select = document.getElementById('add-member-' + familyId);
+  if (!select) return;
+  const playerId = select.value;
+  if (!playerId) return;
+  // Pull the player out of any other family first.
+  state.families.forEach(f => {
+    if (f.id !== familyId) f.memberIds = f.memberIds.filter(id => id !== playerId);
+  });
+  state.families = state.families.filter(f => f.memberIds.length >= 2 || f.id === familyId);
+  const f = state.families.find(x => x.id === familyId);
+  if (f && !f.memberIds.includes(playerId)) f.memberIds.push(playerId);
+  save(); renderAll();
+}
+
+function renderFamilyForm() {
+  const el = document.getElementById('family-form-members');
+  if (!el) return;
+  if (!state.players.length) {
+    el.innerHTML = '<div class="empty">Add players first</div>';
+    return;
+  }
+  el.innerHTML = state.players.map(p => {
+    const fam = getPlayerFamily(p.id);
+    return `<div class="dinner-row">
+      <input type="checkbox" id="ffm_${p.id}" data-player="${p.id}" ${fam ? 'disabled' : ''} />
+      <label for="ffm_${p.id}" style="${fam ? 'opacity:0.55' : ''}">
+        ${p.name}
+        ${fam ? `<span class="tag" style="margin-left:6px">in: ${fam.name}</span>` : ''}
+      </label>
+    </div>`;
+  }).join('');
+}
+
+function renderFamilies() {
+  renderFamilyForm();
+  const listEl = document.getElementById('families-list');
+  if (!state.families.length) {
+    listEl.innerHTML = '<div class="empty">No families yet &mdash; everyone settles individually.</div>';
+    return;
+  }
+  const unassigned = getUnassignedPlayers();
+  listEl.innerHTML = state.families.map(f => {
+    const memberTags = f.memberIds.map(id => {
+      const p = state.players.find(x => x.id === id);
+      return `<span class="tag tag-green" style="margin-right:6px;padding:3px 8px">
+        ${p ? p.name : '?'}
+        <button class="btn btn-sm btn-secondary" style="margin-left:6px;padding:0 6px;font-size:0.7rem;line-height:1.4"
+                onclick="removeFamilyMember('${f.id}','${id}')" title="Remove from family">&times;</button>
+      </span>`;
+    }).join(' ');
+    const addOptions = unassigned.length
+      ? `<select id="add-member-${f.id}" onchange="addFamilyMember('${f.id}')" style="max-width:200px;margin-top:8px">
+           <option value="">+ add member…</option>
+           ${unassigned.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+         </select>`
+      : '';
+    return `<div class="row-item" style="display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div class="item-name">&#128106; ${f.name}</div>
+        <button class="btn btn-danger btn-sm" onclick="removeFamily('${f.id}')">Remove</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${memberTags}
+      </div>
+      ${addOptions}
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  DINNER
+// ──────────────────────────────────────────
+function getDinnerShareFor(dinner, playerId) {
+  if (dinner.splitMode === 'equal') {
+    if (!dinner.participants.includes(playerId) || !dinner.participants.length) return 0;
+    return dinner.totalAmount / dinner.participants.length;
+  }
+  return (dinner.shares && dinner.shares[playerId]) || 0;
+}
+
+function renderDinnerForm() {
+  const el = document.getElementById('dinner-form-detail');
+  if (!el) return;
+  if (!state.players.length) {
+    el.innerHTML = '<div class="alert alert-warn" style="margin-bottom:12px">Add players first.</div>';
+    return;
+  }
+  const mode = document.getElementById('dinner-split-mode').value;
+  if (mode === 'equal') {
+    el.innerHTML = `
+      <div class="form-row">
+        <div class="form-group" style="max-width:200px">
+          <label>Total amount</label>
+          <input type="number" id="dinner-total-amount" min="0" step="0.01" placeholder="0.00"
+                 onkeydown="if(event.key==='Enter')addDinner()" />
+        </div>
+      </div>
+      <div class="section-label">Who ate? (split equally)</div>
+      <div class="toggle-row">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setDinnerFormParticipants(true)">Select All</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setDinnerFormParticipants(false)">Clear All</button>
+      </div>
+      <div id="dinner-form-participants" style="margin-bottom:12px">
+        ${state.players.map(p => `
+          <div class="dinner-row">
+            <input type="checkbox" id="dfp_${p.id}" data-player="${p.id}" checked />
+            <label for="dfp_${p.id}">${p.name}</label>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="section-label">Custom amounts per person</div>
+      <p style="color:#6b7280;font-size:0.82rem;margin-bottom:8px">Leave blank or 0 if they didn't eat.</p>
+      <div style="margin-bottom:8px">
+        ${state.players.map(p => `
+          <div class="dinner-row">
+            <label style="flex:1;text-transform:none;font-weight:500;color:#e5e7eb;letter-spacing:0;font-size:0.92rem">${p.name}</label>
+            <input type="number" data-player="${p.id}" class="dinner-share-input" min="0" step="0.01" placeholder="0.00"
+                   style="max-width:120px" oninput="updateDinnerCustomTotal()"
+                   onkeydown="if(event.key==='Enter')addDinner()" />
+          </div>`).join('')}
+      </div>
+      <div class="info-bar" style="margin-bottom:12px">
+        Bill total: <span id="dinner-custom-total">${curr()}0.00</span>
+      </div>`;
+  }
+}
+
+function setDinnerFormParticipants(all) {
+  document.querySelectorAll('#dinner-form-participants input[type=checkbox]')
+    .forEach(cb => cb.checked = all);
+}
+
+function updateDinnerCustomTotal() {
+  let total = 0;
+  document.querySelectorAll('.dinner-share-input').forEach(input => {
+    const v = parseFloat(input.value);
+    if (!isNaN(v)) total += v;
+  });
+  const el = document.getElementById('dinner-custom-total');
+  if (el) el.textContent = curr() + total.toFixed(2);
+}
+
+function addDinner() {
+  if (!state.players.length) { alert('Add players first.'); return; }
+  const payerId = document.getElementById('dinner-payer').value;
+  const desc    = document.getElementById('dinner-desc').value.trim() || 'Dinner bill';
+  const mode    = document.getElementById('dinner-split-mode').value;
+  if (!payerId) { alert('Select a payer.'); return; }
+
+  const entry = { id: 'd_' + Date.now(), payerId, desc, splitMode: mode };
+
+  if (mode === 'equal') {
+    const totalAmount = parseFloat(document.getElementById('dinner-total-amount').value);
+    if (!totalAmount || totalAmount <= 0) { alert('Enter a valid total amount.'); return; }
+    const participants = Array.from(
+      document.querySelectorAll('#dinner-form-participants input[type=checkbox]:checked')
+    ).map(cb => cb.dataset.player);
+    if (!participants.length) { alert('Select at least one participant who ate.'); return; }
+    entry.totalAmount  = totalAmount;
+    entry.participants = participants;
+    entry.shares       = {};
+  } else {
+    const shares = {};
+    let total = 0;
+    document.querySelectorAll('.dinner-share-input').forEach(input => {
+      const v = parseFloat(input.value);
+      if (!isNaN(v) && v > 0) {
+        shares[input.dataset.player] = v;
+        total += v;
+      }
+    });
+    if (total <= 0) { alert('Enter at least one share amount greater than 0.'); return; }
+    entry.totalAmount  = total;
+    entry.participants = Object.keys(shares);
+    entry.shares       = shares;
+  }
+
+  state.dinners.push(entry);
+  document.getElementById('dinner-desc').value = '';
+  save();
+  renderAll();
+}
+
+function removeDinner(id) {
+  state.dinners = state.dinners.filter(d => d.id !== id);
+  save(); renderAll();
+}
+
+function renderDinner() {
+  renderDinnerForm();
+  const listEl = document.getElementById('dinners-list');
+  if (!state.dinners.length) {
+    listEl.innerHTML = '<div class="empty">No dinners logged yet</div>';
+    return;
+  }
+  listEl.innerHTML = state.dinners.map(d => {
+    const payer = state.players.find(p => p.id === d.payerId);
+    const breakdown = d.participants.map(pid => {
+      const player = state.players.find(p => p.id === pid);
+      const share  = getDinnerShareFor(d, pid);
+      return `${player ? player.name : '?'}: ${curr()}${share.toFixed(2)}`;
+    }).join(' &bull; ');
+    return `<div class="row-item" style="display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+        <div>
+          <span class="tag tag-blue">${d.desc}</span>
+          <span style="margin-left:6px;font-weight:600">${payer ? payer.name : '?'}</span>
+          <span style="color:#6b7280;font-size:0.82rem;margin-left:6px">paid ${curr()}${d.totalAmount.toFixed(2)}</span>
+          <span class="tag" style="margin-left:6px">${d.splitMode === 'equal' ? 'Equal' : 'Custom'}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeDinner('${d.id}')">&#x2715;</button>
+      </div>
+      <div style="color:#9ca3af;font-size:0.82rem">${breakdown || '<em>no participants</em>'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  CASH OUT
+// ──────────────────────────────────────────
+function setCashout() {
+  const playerId  = document.getElementById('cashout-player').value;
+  const rawAmount = parseFloat(document.getElementById('cashout-amount').value);
+  const unit      = document.getElementById('cashout-unit').value;
+  if (!playerId || isNaN(rawAmount) || rawAmount < 0) {
+    alert('Select a player and enter a valid amount.'); return;
+  }
+  state.cashouts[playerId] = toChips(rawAmount, unit);
+  document.getElementById('cashout-amount').value = '';
+  save(); renderAll();
+}
+
+function clearCashout(playerId) {
+  delete state.cashouts[playerId];
+  save(); renderAll();
+}
+
+function renderCashout() {
+  const el = document.getElementById('cashout-summary');
+  if (!state.players.length) {
+    el.innerHTML = '<div class="empty">Add players first</div>'; return;
+  }
+  const totalMoney = Object.values(state.cashouts).reduce((s, c) => s + c2m(c), 0);
+  let html = state.players.map(p => {
+    const chips = state.cashouts[p.id];
+    const has   = chips !== undefined;
+    return `<div class="row-item">
+      <div class="item-name">${p.name}</div>
+      ${has
+        ? `<div style="display:flex;align-items:center;gap:10px">
+            <div>
+              <span class="item-value">${curr()}${c2m(chips).toFixed(2)}</span>
+              <span style="color:#6b7280;font-size:0.82rem"> (${Math.round(chips)} chips)</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="clearCashout('${p.id}')">Clear</button>
+          </div>`
+        : '<span style="color:#4b5563">Not set</span>'}
+    </div>`;
+  }).join('');
+  html += `<div class="grand-total">Total cashed out: ${curr()}${totalMoney.toFixed(2)}</div>`;
+  el.innerHTML = html;
+}
+
+// ──────────────────────────────────────────
+//  SETTLEMENT
+// ──────────────────────────────────────────
+function calcNets() {
+  const totalBuyinChips   = state.buyins.reduce((s, b) => s + b.chips, 0);
+  const totalCashoutChips = Object.values(state.cashouts).reduce((s, c) => s + c, 0);
+  const allCashedOut = state.players.length > 0 && state.players.every(p => p.id in state.cashouts);
+
+  let scaleFactor = 1;
+  let rebalanced  = false;
+  if (allCashedOut && totalCashoutChips > 0 && Math.abs(totalCashoutChips - totalBuyinChips) > 0.0001) {
+    scaleFactor = totalBuyinChips / totalCashoutChips;
+    rebalanced  = true;
+  }
+
+  const dinnerPaidMap  = {};
+  const dinnerShareMap = {};
+  state.players.forEach(p => { dinnerPaidMap[p.id] = 0; dinnerShareMap[p.id] = 0; });
+  state.dinners.forEach(d => {
+    if (d.payerId in dinnerPaidMap) dinnerPaidMap[d.payerId] += d.totalAmount;
+    state.players.forEach(p => {
+      dinnerShareMap[p.id] += getDinnerShareFor(d, p.id);
+    });
+  });
+
+  const rows = state.players.map(p => {
+    const buyin = state.buyins.filter(b => b.playerId === p.id)
+                              .reduce((s, b) => s + c2m(b.chips), 0);
+    const rawCashoutChips = p.id in state.cashouts ? state.cashouts[p.id] : 0;
+    const rawCashoutMoney = c2m(rawCashoutChips);
+    const cashout = rawCashoutMoney * scaleFactor;
+    const share   = dinnerShareMap[p.id];
+    const paid    = dinnerPaidMap[p.id] || 0;
+    const net     = cashout - buyin - share + paid;
+    return { player: p, buyin, cashout, rawCashoutChips, rawCashoutMoney, share, paid, net };
+  });
+
+  return { rows, scaleFactor, rebalanced, totalBuyinChips, totalCashoutChips, allCashedOut };
+}
+
+function aggregateForSettlement(rows) {
+  // Collapse family members into a single virtual node so internal
+  // family transfers vanish from the settlement plan.
+  const items = []; // [{ name, net, isFamily, members?: [name] }]
+  const accounted = new Set();
+
+  state.families.forEach(f => {
+    let famNet = 0;
+    const memberNames = [];
+    f.memberIds.forEach(id => {
+      const row = rows.find(r => r.player.id === id);
+      if (row) {
+        famNet += row.net;
+        memberNames.push(row.player.name);
+        accounted.add(id);
+      }
+    });
+    if (memberNames.length) {
+      items.push({ name: f.name, net: famNet, isFamily: true, members: memberNames });
+    }
+  });
+
+  rows.forEach(r => {
+    if (!accounted.has(r.player.id)) {
+      items.push({ name: r.player.name, net: r.net, isFamily: false });
+    }
+  });
+
+  return items;
+}
+
+function minimizeTransactions(items) {
+  const creditors = [];
+  const debtors   = [];
+  items.forEach(({ name, net }) => {
+    if (net >  0.005) creditors.push({ name, amount:  net });
+    if (net < -0.005) debtors.push(  { name, amount: -net });
+  });
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort(  (a, b) => b.amount - a.amount);
+
+  const txns = [];
+  let i = 0, j = 0;
+  while (i < creditors.length && j < debtors.length) {
+    const amt = Math.min(creditors[i].amount, debtors[j].amount);
+    txns.push({ from: debtors[j].name, to: creditors[i].name, amount: amt });
+    creditors[i].amount -= amt;
+    debtors[j].amount   -= amt;
+    if (creditors[i].amount < 0.005) i++;
+    if (debtors[j].amount   < 0.005) j++;
+  }
+  return txns;
+}
+
+function renderSettle() {
+  if (!state.players.length) {
+    document.getElementById('pot-check').innerHTML      = '<div class="empty">Add players first</div>';
+    document.getElementById('net-positions').innerHTML  = '<div class="empty">Add players first</div>';
+    document.getElementById('settlements').innerHTML    = '<div class="empty">Nothing to settle yet</div>';
+    document.getElementById('settle-warnings').innerHTML = '';
+    document.getElementById('copy-btn').style.display  = 'none';
+    return;
+  }
+
+  const result = calcNets();
+  const { rows: nets, scaleFactor, rebalanced, totalBuyinChips, totalCashoutChips } = result;
+
+  // ── Pot health check ──────────────────────────────
+  const totalBuyin   = nets.reduce((s, r) => s + r.buyin,   0);
+  const totalCashout = nets.reduce((s, r) => s + r.cashout, 0);
+  const diff         = totalCashout - totalBuyin;
+  const hasCashouts  = Object.keys(state.cashouts).length > 0;
+
+  let potHtml = `<div class="pot-bar">
+    <div class="pot-stat">
+      <div class="pot-stat-label">Total Buy-ins</div>
+      <div class="pot-stat-value yellow">${curr()}${totalBuyin.toFixed(2)}</div>
+    </div>
+    <div class="pot-stat">
+      <div class="pot-stat-label">Total Cash Outs${rebalanced ? ' (rebalanced)' : ''}</div>
+      <div class="pot-stat-value yellow">${curr()}${totalCashout.toFixed(2)}</div>
+    </div>
+    <div class="pot-stat">
+      <div class="pot-stat-label">Difference</div>
+      <div class="pot-stat-value ${Math.abs(diff) < 0.01 ? 'green' : 'red'}">${fmtSigned(diff)}</div>
+    </div>
+  </div>`;
+  if (rebalanced) {
+    const direction = scaleFactor > 1 ? 'inflated' : 'deflated';
+    const pct = Math.abs((scaleFactor - 1) * 100);
+    potHtml += `<div class="alert alert-info" style="margin-top:10px;margin-bottom:0">
+      &#9878;&#65039; <strong>Pot rebalanced.</strong>
+      Cash-outs totalled <strong>${Math.round(totalCashoutChips)}</strong> chips
+      vs buy-ins of <strong>${Math.round(totalBuyinChips)}</strong> chips.
+      Each cash-out has been ${direction} by ${pct.toFixed(2)}%
+      (treating ${Math.round(totalCashoutChips)} chips as ${curr()}${totalBuyin.toFixed(2)}).
+    </div>`;
+  } else if (hasCashouts) {
+    potHtml += Math.abs(diff) < 0.01
+      ? `<div class="alert alert-success" style="margin-top:10px;margin-bottom:0">&#10003; Pot balances — buy-ins equal cash outs.</div>`
+      : `<div class="alert alert-warn" style="margin-top:10px;margin-bottom:0">&#9888; Pot is off by ${fmtMoney(diff)} — auto-rebalance kicks in once every player has cashed out.</div>`;
+  }
+  document.getElementById('pot-check').innerHTML = potHtml;
+
+  // ── Missing cash-out warnings ─────────────────────
+  const missing = state.players.filter(p => !(p.id in state.cashouts));
+  let warnHtml  = '';
+  if (missing.length) {
+    warnHtml = `<div class="alert alert-warn" style="margin-bottom:10px">
+      &#9888; Cash out not set for: <strong>${missing.map(p => p.name).join(', ')}</strong>.
+      Their cash out is counted as ${curr()}0.00.
+    </div>`;
+  }
+  document.getElementById('settle-warnings').innerHTML = warnHtml;
+
+  // ── Net positions table ───────────────────────────
+  let tbl = `<div style="overflow-x:auto"><table class="summary-table">
+    <thead><tr>
+      <th>Player</th><th>Buy-in</th>
+      <th>Cash Out${rebalanced ? ' (adj.)' : ''}</th>
+      <th>Dinner Share</th><th>Dinner Paid</th><th>Net</th>
+    </tr></thead><tbody>`;
+
+  nets.forEach(({ player, buyin, cashout, rawCashoutChips, rawCashoutMoney, share, paid, net }) => {
+    const cls  = net >= 0 ? 'net-pos' : 'net-neg';
+    const sign = net >= 0 ? '+' : '&minus;';
+    const fam  = getPlayerFamily(player.id);
+    const nameCell = `<strong>${player.name}</strong>${fam ? ` <span class="tag tag-green" style="margin-left:4px">&#128106; ${fam.name}</span>` : ''}`;
+    const cashoutCell = rebalanced
+      ? `${curr()}${cashout.toFixed(2)}<div style="color:#6b7280;font-size:0.75rem;margin-top:2px">${Math.round(rawCashoutChips)} chips &mdash; raw ${curr()}${rawCashoutMoney.toFixed(2)}</div>`
+      : `${curr()}${cashout.toFixed(2)}`;
+    tbl += `<tr>
+      <td>${nameCell}</td>
+      <td>${curr()}${buyin.toFixed(2)}</td>
+      <td>${cashoutCell}</td>
+      <td>${share > 0 ? curr()+share.toFixed(2) : '&mdash;'}</td>
+      <td>${paid  > 0 ? curr()+paid.toFixed(2)  : '&mdash;'}</td>
+      <td class="${cls}">
+        <strong>${sign}${curr()}${Math.abs(net).toFixed(2)}</strong>
+        <span class="badge ${net >= 0 ? 'badge-green' : 'badge-red'}">${net >= 0 ? 'receives' : 'pays'}</span>
+      </td>
+    </tr>`;
+  });
+  tbl += '</tbody></table></div>';
+
+  // ── Family subtotals (used for settlement) ────────
+  const items = aggregateForSettlement(nets);
+  const familyItems = items.filter(it => it.isFamily);
+  if (familyItems.length) {
+    tbl += `<div class="section-label" style="margin-top:18px">&#128106; Family subtotals (used for settlement)</div>`;
+    tbl += familyItems.map(it => {
+      const cls  = it.net >= 0 ? 'net-pos' : 'net-neg';
+      const sign = it.net >= 0 ? '+' : '&minus;';
+      return `<div class="row-item">
+        <div>
+          <div class="item-name">${it.name}</div>
+          <div class="item-meta">${it.members.join(', ')}</div>
+        </div>
+        <div class="${cls}" style="font-weight:700">
+          ${sign}${curr()}${Math.abs(it.net).toFixed(2)}
+          <span class="badge ${it.net >= 0 ? 'badge-green' : 'badge-red'}">${it.net >= 0 ? 'receives' : 'pays'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('net-positions').innerHTML = tbl;
+
+  // ── Transactions (family-aware) ───────────────────
+  const txns = minimizeTransactions(items);
+  const itemsByName = {};
+  items.forEach(it => { itemsByName[it.name] = it; });
+  const copyBtn = document.getElementById('copy-btn');
+  if (!txns.length) {
+    document.getElementById('settlements').innerHTML =
+      `<div class="alert alert-success" style="text-align:center;font-size:1rem">&#127881; Everyone is settled up!</div>`;
+    copyBtn.style.display = 'none';
+  } else {
+    document.getElementById('settlements').innerHTML = txns.map(t => {
+      const fromIt = itemsByName[t.from];
+      const toIt   = itemsByName[t.to];
+      const fromSub = fromIt && fromIt.isFamily
+        ? `<div style="font-size:0.7rem;color:#6b7280;margin-top:2px">${fromIt.members.join(', ')}</div>` : '';
+      const toSub   = toIt   && toIt.isFamily
+        ? `<div style="font-size:0.7rem;color:#6b7280;margin-top:2px">${toIt.members.join(', ')}</div>` : '';
+      return `<div class="txn-item">
+        <div><span class="txn-from">${t.from}</span>${fromSub}</div>
+        <span class="txn-arrow">&rarr;</span>
+        <div><span class="txn-to">${t.to}</span>${toSub}</div>
+        <span class="txn-amount">${fmtMoney(t.amount)}</span>
+      </div>`;
+    }).join('');
+    copyBtn.style.display = 'block';
+    copyBtn._txns = txns;
+  }
+}
+
+function copySettlement() {
+  const txns = document.getElementById('copy-btn')._txns || [];
+  if (!txns.length) return;
+  const lines = ['Poker Night Settlements', '─'.repeat(28),
+    ...txns.map(t => `${t.from} → ${t.to}: ${fmtMoney(t.amount)}`)
+  ].join('\n');
+  navigator.clipboard.writeText(lines)
+    .then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy Settlement to Clipboard', 1800);
+    })
+    .catch(() => alert('Copy failed — please copy manually.'));
+}
+
+// ──────────────────────────────────────────
+//  SELECTS & TAB BADGES
+// ──────────────────────────────────────────
+function updateSelects() {
+  ['buyin-player', 'dinner-payer', 'cashout-player'].forEach(id => {
+    const el   = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = !state.players.length
+      ? '<option value="">— add players first —</option>'
+      : state.players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    if (prev && state.players.some(p => p.id === prev)) el.value = prev;
+  });
+}
+
+function updateTabBadges() {
+  const missing = state.players.filter(p => !(p.id in state.cashouts)).length;
+
+  setBadge('tab-btn-players', state.players.length || null);
+  setBadge('tab-btn-buyins',  state.buyins.length  || null);
+  setBadge('tab-btn-dinner',  state.dinners.length || null);
+  setBadge('tab-btn-cashout', (state.players.length && missing) ? missing : null, missing > 0);
+
+  const result = state.players.length ? calcNets() : { rows: [] };
+  const items  = result.rows.length ? aggregateForSettlement(result.rows) : [];
+  const txns   = items.length ? minimizeTransactions(items) : [];
+  setBadge('tab-btn-settle', txns.length || null, txns.length > 0);
+}
+
+function setBadge(btnId, count, warn = false) {
+  const btn = document.getElementById(btnId);
+  let badge = btn.querySelector('.tab-badge');
+  if (!count) { if (badge) badge.remove(); return; }
+  if (!badge) { badge = document.createElement('span'); badge.className = 'tab-badge'; btn.appendChild(badge); }
+  badge.textContent = count;
+  badge.style.background = warn ? '#dc2626' : '#374151';
+}
+
+// ──────────────────────────────────────────
+//  RENDER ALL
+// ──────────────────────────────────────────
+function renderAll() {
+  updateRateDisplay();
+  updateSelects();
+  renderPlayers();
+  renderFamilies();
+  renderBuyins();
+  renderDinner();
+  renderCashout();
+  renderSettle();
+  updateTabBadges();
+}
+
+// ──────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────
+load();
+renderAll();
+</script>
+</body>
+</html>
