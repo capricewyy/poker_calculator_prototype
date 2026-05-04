@@ -82,7 +82,7 @@ subset of the group's members. The two must not be conflated.
 2. Invite people to a group via link or code (invite-only, no discovery) — **Planned**
    - No public profiles; users only see groups they belong to.
 3. Group has owner, admins, and members — **Planned**
-   - **Owner/admin can edit any session in the group** (super-admin over D5).
+   - **Owner/admin can edit any session in the group** (super-admin over D6).
    - Member is a play-only role.
 4. Group-level default chip rate, currency, location — **Planned**
    - Overridable per session.
@@ -104,16 +104,23 @@ signing up.
    - **Default identity path.** We piggyback on third-party identity rather than running our own password store.
 2. Name-only guest entry as a fallback when a player can't link an account — **Planned**
    - Splitwise-style. The host types a name; no account is created. Used when D1 isn't possible at the table.
-3. Claim-by-invite: link a name-only guest record to a signed-in identity later — **Planned**
-   - When Bob eventually signs in, his historical Bob-rows merge in.
-4. Read-only result view for a participant who has an account — **Planned**
+3. Claim-by-invite: user-initiated auto-claim of a guest record on first sign-in — **Backlog**
+   - When Bob eventually signs in, his historical Bob-rows merge in automatically. Deferred past v1 — the v1 path is the admin-driven manual merge in D4.
+4. Admin-driven manual merge of unclaimed guest records into a signed-in player — **Planned**
+   - **V1 substitute for D3.** When a previous guest signs up, a group admin opens a list of that group's unclaimed guest names and ticks the rows that belong to the new account (e.g. tick "Jack" and "J.W." to merge them into JACK W.'s account). Once merged, the player's history flows into D5/D7/D8 views as if they had been signed in all along. No user-initiated path in v1 — the merge always goes through an admin.
+5. Read-only result view for a participant who has an account — **Planned**
    - "Here's what you owe / are owed for last night."
-5. Permission model: group owner / admin / host / participant — **Planned**
+6. Permission model: group owner / admin / host / participant — **Planned**
    - Owner & admins (C3) can edit any session in the group.
+   - Owner & admins also run the D4 manual-merge flow.
    - The host is the editor of record for the night they ran.
    - Participants view only.
-6. A user can view their own P/L across all groups they belong to — **Planned**
-7. Export a session or season as CSV / JSON — **Open**
+7. Group-level shared visibility: every member of a group can view all members' P/L, ranking, and average profit within that group — **Planned**
+   - Builds on B7–B9. Within a group, per-player stats and leaderboards are open to every member — not host-only and not self-only. Clarifies what "participants view only" in D6 means at the group level: *all* group stats are visible, not just the viewer's own row.
+8. Personal cross-group P/L roll-up — **Planned**
+   - A user can view their *own* combined P/L across every group they belong to. **Personal view only** — there is no cross-group leaderboard or ranking; users only ever see their own roll-up.
+   - Aggregation must normalize for stakes (e.g. relative to each group's chip rate or average buy-in) so a high-stakes group doesn't dwarf a low-stakes one. Exact normalization formula is **Open**.
+9. Export a session or season as CSV / JSON — **Open**
    - Useful for power users; not load-bearing.
 
 ## E. Platform and sync
@@ -153,9 +160,14 @@ These were the open product questions captured during spec drafting. Each is
 now resolved. Use these as the source of truth when an answer affects schema,
 permissions, or feature scope.
 
-1. **Non-account players see their own history.** Once a name-only guest
-   claims their record via D3, they get full access to their historical P/L
-   within the group, identical to any other member.
+1. **Non-account players' history is merged in by an admin once they sign up.**
+   User-initiated auto-claim (D3) is deferred to backlog. The v1 path is the
+   admin-driven manual merge (D4): when a previous guest creates an account,
+   a group admin ticks the unclaimed guest rows that belong to that
+   identity (e.g. "Jack" and "J.W." into JACK W.) and the history flows
+   into the player's account-level views. Until that merge runs, the
+   guest's P/L lives only inside session records (visible to other group
+   members per D7) and the guest has no account-level view of their own.
 
 2. **Sessions are owned by the group; the host is the editor of record;
    group admins can override.** A session belongs to the group, not to the
@@ -189,6 +201,6 @@ permissions, or feature scope.
    a group is supported (C9); historical participation is preserved when
    someone leaves.
 
-8. **V1 cut confirmed.** Floor: A1–A17, B1–B4, B7, C1–C7, D1, D2, D4, E1–E3.
+8. **V1 cut confirmed.** Floor: All points in A, B, C, D1, D2, D5-9, all points in E.
    Section F is fully out of v1. The architect should validate this against
    effort.
