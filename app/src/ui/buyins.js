@@ -14,13 +14,28 @@ export function addBuyin() {
   }
   const chips = toChips(rawAmount, unit);
   state.buyins.push({ id: 'b_' + Date.now(), playerId, chips, originalAmount: rawAmount, unit });
-  document.getElementById('buyin-amount').value = '';
+  document.getElementById('buyin-amount').value = '1';
   save(); renderAll();
   document.getElementById('buyin-amount').focus();
 }
 
 export function removeBuyin(id) {
   state.buyins = state.buyins.filter(b => b.id !== id);
+  save(); renderAll();
+}
+
+export function startEveryoneWithBuyin() {
+  const haveBuyin = new Set(state.buyins.map(b => b.playerId));
+  state.players.forEach(p => {
+    if (haveBuyin.has(p.id)) return;
+    state.buyins.push({
+      id: `b_${Date.now()}_${p.id}`,
+      playerId: p.id,
+      chips: state.chipCount,
+      originalAmount: 1,
+      unit: 'buyin',
+    });
+  });
   save(); renderAll();
 }
 
@@ -40,9 +55,10 @@ export function renderBuyins() {
     }
     pb.forEach((b, i) => {
       const label = i === 0 ? 'Buy-in' : `Rebuy #${i}`;
-      const moneyStr = b.unit === 'chips'
-        ? `${b.originalAmount} chips = ${curr()}${c2m(b.chips).toFixed(2)}`
-        : `${curr()}${b.originalAmount.toFixed(2)}`;
+      const moneyStr =
+        b.unit === 'chips' ? `${b.originalAmount} chips = ${curr()}${c2m(b.chips).toFixed(2)}` :
+        b.unit === 'buyin' ? `${b.originalAmount} buy-in${b.originalAmount === 1 ? '' : 's'} = ${curr()}${c2m(b.chips).toFixed(2)}` :
+        `${curr()}${b.originalAmount.toFixed(2)}`;
       html += `<div class="row-item">
         <div>
           <span class="tag tag-yellow">${label}</span>

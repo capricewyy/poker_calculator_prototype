@@ -24,10 +24,10 @@
   <div id="tab-setup" class="panel active">
     <div class="card">
       <h2>Chip Rate</h2>
-      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:14px">Define how many chips equal how much money</p>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:14px">One standard buy-in is this many chips, worth this much money</p>
       <div class="form-row">
         <div class="form-group">
-          <label>Chips</label>
+          <label>Chips per buy-in</label>
           <input type="number" id="chip-count" value="100" min="1" step="1" />
         </div>
         <div style="padding-bottom:9px;color:#6b7280;font-size:1.3rem;font-weight:300">=</div>
@@ -42,7 +42,7 @@
         <button class="btn btn-primary" onclick="saveChipRate(this)">Save</button>
       </div>
       <div class="rate-display">
-        Rate: <span id="rate-display">100 chips = £1.00</span>
+        1 buy-in = <span id="rate-display">100 chips = £1.00</span>
         &nbsp;|&nbsp; 1 chip = <span id="rate-per-chip">£0.0100</span>
       </div>
     </div>
@@ -115,18 +115,22 @@
         </div>
         <div class="form-group" style="max-width:150px">
           <label>Amount</label>
-          <input type="number" id="buyin-amount" placeholder="0" min="0" step="any"
+          <input type="number" id="buyin-amount" value="1" min="0" step="any"
                  onkeydown="if(event.key==='Enter')addBuyin()" />
         </div>
         <div class="form-group" style="max-width:115px">
           <label>Unit</label>
           <select id="buyin-unit">
+            <option value="buyin">Buy-in</option>
             <option value="chips">Chips</option>
             <option value="money">Money</option>
           </select>
         </div>
         <button class="btn btn-primary" onclick="addBuyin()">Log</button>
       </div>
+      <button class="btn btn-secondary btn-block" style="margin-top:10px" onclick="startEveryoneWithBuyin()">
+        &#9889; Start everyone with 1 buy-in
+      </button>
     </div>
     <div class="card">
       <h2>Buy-in History</h2>

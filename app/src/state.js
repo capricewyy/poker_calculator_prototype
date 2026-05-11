@@ -2,11 +2,11 @@
 //  STATE
 // ──────────────────────────────────────────
 export const state = {
-  chipCount: 100,
+  chipCount: 100,  // also defines one standard buy-in (1 buy-in = chipCount chips)
   chipMoney: 1.00,
   currency: '£',
   players: [],   // [{id, name}]
-  buyins: [],    // [{id, playerId, chips, originalAmount, unit}]
+  buyins: [],    // [{id, playerId, chips, originalAmount, unit}] — unit: 'chips'|'money'|'buyin'
   cashouts: {},  // {playerId: chips}
   dinners: [],   // [{id, payerId, desc, splitMode:'equal'|'custom', totalAmount, participants:[playerId], shares:{playerId:amount}}]
   families: [],  // [{id, name, memberIds:[playerId]}]
