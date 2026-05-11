@@ -36,7 +36,7 @@ export async function addPlayers(page, names) {
   }
 }
 
-/** Log a buy-in. unit is 'chips' or 'money'. */
+/** Log a buy-in. unit is 'chips', 'money', or 'buyin'. */
 export async function logBuyin(page, playerName, amount, unit = 'chips') {
   await gotoTab(page, 'Buy-ins');
   await page.selectOption('#buyin-player', { label: playerName });

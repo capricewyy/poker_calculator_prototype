@@ -11,7 +11,7 @@ import {
   addFamily, removeFamily, removeFamilyMember, addFamilyMember,
   renderFamilies,
 } from './ui/families.js';
-import { addBuyin, removeBuyin, renderBuyins } from './ui/buyins.js';
+import { addBuyin, removeBuyin, renderBuyins, startEveryoneWithBuyin } from './ui/buyins.js';
 import {
   renderDinnerForm, setDinnerFormParticipants, updateDinnerCustomTotal,
   addDinner, removeDinner, renderDinner,
@@ -52,6 +52,7 @@ window.addPlayer                 = addPlayer;
 window.removePlayer              = removePlayer;
 window.addBuyin                  = addBuyin;
 window.removeBuyin               = removeBuyin;
+window.startEveryoneWithBuyin    = startEveryoneWithBuyin;
 window.addFamily                 = addFamily;
 window.removeFamily              = removeFamily;
 window.removeFamilyMember        = removeFamilyMember;
