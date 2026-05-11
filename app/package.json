@@ -1,0 +1,17 @@
+{
+  "name": "poker-night-app",
+  "version": "0.2.0",
+  "description": "Poker Night — single-session settle-up calculator (deployable prototype)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx http-server . -p 8080 -c-1 -s",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "http-server": "^14.1.1"
+  }
+}

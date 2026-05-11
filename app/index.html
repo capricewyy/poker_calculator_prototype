@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Night Calculator (v2 — Families)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <h1>&#127183; Poker Night</h1>
+  <p class="subtitle">Track buy-ins &bull; rebuys &bull; dinner &bull; cash outs &bull; families &bull; settle up</p>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-setup"   onclick="showTab(this,'setup')">&#9881; Setup</button>
+    <button class="tab"        id="tab-btn-players" onclick="showTab(this,'players')">&#128100; Players</button>
+    <button class="tab"        id="tab-btn-buyins"  onclick="showTab(this,'buyins')">&#128181; Buy-ins</button>
+    <button class="tab"        id="tab-btn-dinner"  onclick="showTab(this,'dinner')">&#127829; Dinner</button>
+    <button class="tab"        id="tab-btn-cashout" onclick="showTab(this,'cashout')">&#128176; Cash Out</button>
+    <button class="tab"        id="tab-btn-settle"  onclick="showTab(this,'settle')">&#9989; Settle</button>
+  </div>
+
+  <!-- ═══════════ SETUP ═══════════ -->
+  <div id="tab-setup" class="panel active">
+    <div class="card">
+      <h2>Chip Rate</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:14px">Define how many chips equal how much money</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Chips</label>
+          <input type="number" id="chip-count" value="100" min="1" step="1" />
+        </div>
+        <div style="padding-bottom:9px;color:#6b7280;font-size:1.3rem;font-weight:300">=</div>
+        <div class="form-group" style="max-width:90px">
+          <label>Symbol</label>
+          <input type="text" id="currency-symbol" value="£" maxlength="3" style="text-align:center" />
+        </div>
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="number" id="chip-money" value="1.00" min="0.01" step="0.01" />
+        </div>
+        <button class="btn btn-primary" onclick="saveChipRate(this)">Save</button>
+      </div>
+      <div class="rate-display">
+        Rate: <span id="rate-display">100 chips = £1.00</span>
+        &nbsp;|&nbsp; 1 chip = <span id="rate-per-chip">£0.0100</span>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <strong>Quick guide:</strong><br>
+      1&nbsp;Set chip rate &nbsp;&#8594;&nbsp;
+      2&nbsp;Add players &nbsp;&#8594;&nbsp;
+      3&nbsp;Log buy-ins &amp; rebuys &nbsp;&#8594;&nbsp;
+      4&nbsp;Log dinner payments &amp; who ate &nbsp;&#8594;&nbsp;
+      5&nbsp;Enter cash outs &nbsp;&#8594;&nbsp;
+      6&nbsp;View settlements
+    </div>
+
+    <div class="card">
+      <h2>&#128465; Danger Zone</h2>
+      <button class="btn btn-danger btn-block" onclick="clearAll()">Clear All Data &amp; Start Over</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ PLAYERS ═══════════ -->
+  <div id="tab-players" class="panel">
+    <div class="card">
+      <h2>Add Player</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="player-name" placeholder="e.g. Alice"
+                 onkeydown="if(event.key==='Enter')addPlayer()" />
+        </div>
+        <button class="btn btn-primary" onclick="addPlayer()">Add Player</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Player List</h2>
+      <div id="players-list"><div class="empty">No players added yet</div></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128106; Create Family</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Group players who shouldn't pay each other (e.g. couples, siblings, roommates).
+        Their nets are combined for settlement &mdash; they only transfer to/from people outside the group.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Family name</label>
+          <input type="text" id="family-name" placeholder="e.g. The Smiths" />
+        </div>
+      </div>
+      <div class="section-label">Members (pick 2 or more)</div>
+      <div id="family-form-members"><div class="empty">Add players first</div></div>
+      <button class="btn btn-primary btn-block" onclick="addFamily()">Create Family</button>
+    </div>
+
+    <div class="card">
+      <h2>Family List</h2>
+      <div id="families-list"><div class="empty">No families yet &mdash; everyone settles individually.</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ BUY-INS ═══════════ -->
+  <div id="tab-buyins" class="panel">
+    <div class="card">
+      <h2>Log Buy-in / Rebuy</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Player</label>
+          <select id="buyin-player"></select>
+        </div>
+        <div class="form-group" style="max-width:150px">
+          <label>Amount</label>
+          <input type="number" id="buyin-amount" placeholder="0" min="0" step="any"
+                 onkeydown="if(event.key==='Enter')addBuyin()" />
+        </div>
+        <div class="form-group" style="max-width:115px">
+          <label>Unit</label>
+          <select id="buyin-unit">
+            <option value="chips">Chips</option>
+            <option value="money">Money</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addBuyin()">Log</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Buy-in History</h2>
+      <div id="buyin-summary"><div class="empty">No buy-ins logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DINNER ═══════════ -->
+  <div id="tab-dinner" class="panel">
+    <div class="card">
+      <h2>Add Dinner Bill</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Each bill has its own payer and split. Add as many as you need (e.g. food, drinks, dessert).
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="dinner-desc" placeholder="e.g. Pizza, Drinks..." />
+        </div>
+        <div class="form-group">
+          <label>Paid by</label>
+          <select id="dinner-payer"></select>
+        </div>
+        <div class="form-group" style="max-width:170px">
+          <label>Split mode</label>
+          <select id="dinner-split-mode" onchange="renderDinnerForm()">
+            <option value="equal">Equal split</option>
+            <option value="custom">Custom amounts</option>
+          </select>
+        </div>
+      </div>
+      <div id="dinner-form-detail"></div>
+      <button class="btn btn-primary btn-block" onclick="addDinner()">Add Dinner Bill</button>
+    </div>
+
+    <div class="card">
+      <h2>Logged Dinners</h2>
+      <div id="dinners-list"><div class="empty">No dinners logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CASH OUT ═══════════ -->
+  <div id="tab-cashout" class="panel">
+    <div class="card">
+      <h2>Log Cash Out</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Enter how many chips (or money) each player leaves with. Re-entering a player overwrites.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Player</label>
+          <select id="cashout-player"></select>
+        </div>
+        <div class="form-group" style="max-width:150px">
+          <label>Amount</label>
+          <input type="number" id="cashout-amount" placeholder="0" min="0" step="any"
+                 onkeydown="if(event.key==='Enter')setCashout()" />
+        </div>
+        <div class="form-group" style="max-width:115px">
+          <label>Unit</label>
+          <select id="cashout-unit">
+            <option value="chips">Chips</option>
+            <option value="money">Money</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="setCashout()">Set</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Cash Out Summary</h2>
+      <div id="cashout-summary"><div class="empty">No cash outs logged yet</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SETTLE ═══════════ -->
+  <div id="tab-settle" class="panel">
+
+    <div class="card">
+      <h2>&#127968; Pot Health Check</h2>
+      <div id="pot-check"></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128202; Net Positions</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">
+        Formula: <em>Cash Out &minus; Buy-ins &minus; Dinner Share + Dinner Paid</em>
+      </p>
+      <div id="settle-warnings"></div>
+      <div id="net-positions"><div class="empty">Add players and log data to see results</div></div>
+    </div>
+
+    <div class="card">
+      <h2>&#129309; Settlements</h2>
+      <p style="color:#6b7280;font-size:0.88rem;margin-bottom:12px">Minimum transfers to clear all debts</p>
+      <div id="settlements"><div class="empty">Nothing to settle yet</div></div>
+      <button class="btn btn-success btn-block" id="copy-btn" onclick="copySettlement()" style="display:none;margin-top:12px">
+        &#128203; Copy Settlement to Clipboard
+      </button>
+    </div>
+
+    <button class="btn btn-secondary btn-block" onclick="renderSettle()">&#8635; Recalculate</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

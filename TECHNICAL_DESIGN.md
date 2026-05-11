@@ -8,20 +8,32 @@ with persistent history, seasons, groups, and multi-device sync.
 
 ## 1. What the prototype is today
 
-A single self-contained HTML file ([poker-calculator-v2.html](poker-calculator-v2.html))
-that runs entirely client-side in a browser. Friends have used it during home
-games to track buy-ins, rebuys, dinner bills, cash-outs, and settlements for **one
-session at a time**. There is no backend, no account, and no notion of history
-beyond "the most recent session in this browser."
+A small static web app under [`app/`](app/) that runs entirely client-side
+in a browser. Friends have used it during home games to track buy-ins,
+rebuys, dinner bills, cash-outs, and settlements for **one session at a
+time**. There is no backend, no account, and no notion of history beyond
+"the most recent session in this browser."
 
 ### Files
-- [poker-calculator.html](poker-calculator.html) — v1 (no families). Storage key `poker_v4`.
-- [poker-calculator-v2.html](poker-calculator-v2.html) — v2 (current). Storage key `poker_v5`. Migrates `poker_v3` → `poker_v4` → `poker_v5`.
+
+The current (v2) app is split across HTML, CSS, and ES modules:
+
+- [app/index.html](app/index.html) — markup
+- [app/styles.css](app/styles.css) — styles
+- [app/src/state.js](app/src/state.js) — state object, persistence, migrations. Storage key `poker_v5`. Migrates `poker_v3` → `poker_v4` → `poker_v5`.
+- [app/src/calc/](app/src/calc/) — pure chip-math and settlement logic
+- [app/src/ui/](app/src/ui/) — one module per UI tab
+- [app/src/main.js](app/src/main.js) — entry point, render loop, handler wiring
+
+The v1 prototype is kept for reference at
+[legacy/poker-calculator-v1.html](legacy/poker-calculator-v1.html) (no
+families; storage key `poker_v4`). It is not deployed.
 
 ### Stack
-- Plain HTML + CSS + vanilla JS, no build step, no dependencies.
+- Plain HTML + CSS + vanilla JS ES modules, no build step, no runtime dependencies.
 - `localStorage` for persistence (~5MB per origin, single-browser, single-device).
 - All state lives in a single JS object (`state`) and is re-rendered top-down on every change (`renderAll()`).
+- Playwright is used for integration tests against the real app.
 
 ---
 
@@ -95,7 +107,7 @@ state = {
 
 ## 4. Core algorithms
 
-### 4.1 Chip ↔ money conversion ([poker-calculator-v2.html:365-371](poker-calculator-v2.html#L365-L371))
+### 4.1 Chip ↔ money conversion ([app/src/calc/chip-math.js](app/src/calc/chip-math.js))
 ```
 c2m(chips)  = chips * (chipMoney / chipCount)
 m2c(money)  = money / (chipMoney / chipCount)
@@ -104,7 +116,7 @@ All buy-ins and cash-outs are **stored in chips** so that changing the rate
 later doesn't corrupt history. Dinner amounts are stored in money (they
 represent real-world bills, not chips).
 
-### 4.2 Net position per player ([poker-calculator-v2.html:898-933](poker-calculator-v2.html#L898-L933))
+### 4.2 Net position per player ([app/src/calc/settlement.js](app/src/calc/settlement.js))
 ```
 net = cashout − buy-ins − dinner_share + dinner_paid
 ```
@@ -117,7 +129,7 @@ by `scaleFactor = totalBuyinChips / totalCashoutChips` so the pot conserves
 money. This handles the real-world "we have 12 extra chips, who has them?"
 problem gracefully.
 
-### 4.4 Family-aware settlement ([poker-calculator-v2.html:935-987](poker-calculator-v2.html#L935-L987))
+### 4.4 Family-aware settlement ([app/src/calc/settlement.js](app/src/calc/settlement.js))
 1. Aggregate per-player nets into a flat list of "items," collapsing each
    family into a single virtual node with a summed net.
 2. Split items into creditors (net > 0) and debtors (net < 0); sort each
