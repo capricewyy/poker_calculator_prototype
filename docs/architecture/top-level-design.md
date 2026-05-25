@@ -19,7 +19,7 @@ What it does not solve is everything *between* sessions: there is no concept of 
 Three anchor decisions, confirmed before drafting:
 
 - **Audience: invite-only, friends-of-friends across multiple groups.** No public signup page in v1. New users arrive via a group invite code. The architecture is forward-compatible with opening public signup, group discovery, and join-by-request later — the constraint is enforced at the onboarding UI and per-group flags, not in the auth or data model. See §6.
-- **Mobile delivery: Expo + React Native + Expo Web.** A single codebase yields iOS and Android apps plus a web target. Native is the canonical client for night-of session logging; web is admin-oriented (history review, edits, group/season management, approval queues, stats). See §3.1.
+- **Mobile delivery: Expo + React Native + Expo Web.** A single codebase yields iOS and Android apps plus a web target. **Native is the canonical client for the entire product** — including admin work (group/season management, approval queues, stats). Admin activities are per-group and bundle into the native app; there is no separate web admin UI. Expo Web ships from the same codebase as a desktop convenience surface with no functional partition. See §3.1.
 - **Maintenance: solo developer.** Boring, well-supported tech wins. Managed services beat custom infrastructure wherever the tradeoff is reasonable.
 
 ---
@@ -36,7 +36,8 @@ The product spec produces a distinctive set of architectural pressures that shap
 - **Session-scoped subgraphs.** Families (A4), attendance, dinners, buy-ins, cash-outs are all scoped to a single session. Group membership is independent of session attendance (decision 2). Conflating the two is the most common modelling mistake to avoid.
 - **Two layers of admin.** Group owner/admin (C3) is super-editor on every session in the group; the host is editor of the night they ran (decision 2). This is two roles whose intersection must be expressible as policy.
 - **The buy-ins-in-chips invariant is load-bearing.** Storing buy-ins and cash-outs in chips (not money) is what makes rate edits non-destructive. The v2 schema preserves this.
-- **Native-primary client, web-admin secondary.** The host is on a phone during a game; native must work without fail. Admin work (history review, edits, approvals, settings) is keyboard- and wide-screen friendly and is web-emphasized.
+- **Native is the canonical surface; web is a same-codebase mirror.** The host is on a phone during a game; native must work without fail. Admin activities (history review, edits, approvals, settings) are per-group and live in the same native app — there is no separate web admin UI. Expo Web ships as a desktop convenience target with no functional partition.
+- **Host eligibility is a per-group role, not a per-session attribute.** Not every group member can start a game (C3 + new `host` tier). Only `owner`, `admin`, or `host` roles can create sessions; `member` is play-only. The session's editor-of-record (decision 2) is still the person who ran that night, but they must be host-eligible to become one.
 
 ---
 
@@ -53,7 +54,7 @@ The selected path is a **Supabase-centric BaaS**: Postgres + GoTrue auth + Postg
                     │  ┌──────────────────────────────┐   │
                     │  │ UI (six-tab session +        │   │
                     │  │ groups, history, stats,      │   │
-                    │  │ approvals — web-emphasized)  │   │
+                    │  │ approvals — all native)      │   │
                     │  ├──────────────────────────────┤   │
                     │  │ Calc (chip-math, settlement) │◄──┼── ported from app/src/calc/
                     │  ├──────────────────────────────┤   │
@@ -91,22 +92,13 @@ The selected path is a **Supabase-centric BaaS**: Postgres + GoTrue auth + Postg
 
 The client is one codebase compiled to three targets. Every business-relevant action (create group, log buy-in, refresh stats, approve a claim) is a server call mediated by RLS. Realtime is used selectively — spectator views of an in-progress session subscribe to changes — but the canonical write model is request/response, not collaborative editing.
 
-### 3.1 Native vs. web role split
+### 3.1 Native is the canonical surface
 
-Native and web ship from the same Expo codebase but serve different jobs:
+The native client (iOS and Android) is the canonical surface for the entire product. Live session logging at the table, history browsing, group and season management, the B11 refresh button, join-request approvals (§6.1), and stats/leaderboards all live in the native app. Admin activities are per-group and bundle into the same screens the rest of the group uses — there is no separate admin UI on any platform.
 
-- **Native (iOS/Android) — night-of session logging primary.** The six-tab session screen, buy-in entry, dinner entry, cash-out entry, family creation, and settlement display are native-primary. A host running a game is on their phone; native must work without fail.
-- **Web — admin and review primary.** History browsing, editing past sessions, group settings, season management, the B11 refresh button, the claim-request approval queue (§6.1), and the join-request approval queue (§6.2) are web-emphasized. They benefit from keyboard input, wide screens, and side-by-side comparison views.
+Web (Expo Web) ships from the same Expo codebase as a desktop convenience surface. It renders the same screens with the same navigation; nothing is web-only or web-emphasized, and nothing is native-only except where the underlying platform API genuinely differs (e.g. native push-notification settings, native camera receipt capture — both post-v1). Platform-specific code via `.native.tsx` / `.web.tsx` suffixes is reserved for those narrow cases.
 
-Both targets render both screen sets — there is no hard partition — but the *default navigation* and *layout density* differ by platform. Expo Router supports this cleanly through (a) platform-specific file extensions (`approvals.web.tsx` vs `approvals.native.tsx`) and (b) `Platform.OS`-conditional layout entries in the root `_layout.tsx` that pick the tab/drawer set per platform. Calc logic, data fetching, and most simple screens are shared verbatim.
-
-Native-emphasized screens (3 anchors): live session entry (six tabs), native push-notification settings (post-v1), native camera-based receipt capture (post-v1).
-
-Web-emphasized screens (4 anchors): claim-request approval queue, join-request approval queue (post-v1), season management (create season, edit dates, retroactive backfill), stats/leaderboards detail with sortable tables.
-
-Note: *attaching* a session to seasons happens at session-create on native (it's part of live game flow); *creating and managing seasons themselves* and `season_backfill_by_date_range` are web-emphasized.
-
-**Rule of thumb for a new screen.** If the user touches it during a live game, native-emphasized. If it benefits from sortable tables, side-by-side panes, or bulk actions, web-emphasized. Anything else is shared and renders both.
+The rule of thumb: there are no per-platform UX decisions to make. If a screen exists, it renders on both targets.
 
 ---
 
@@ -120,7 +112,7 @@ Building on [TECHNICAL_DESIGN.md §7](../../TECHNICAL_DESIGN.md). All IDs are UU
 |---|---|---|
 | `users` | Real signed-in accounts | One row per `auth.users`. Created by GoTrue on first sign-in. |
 | `groups` | Recurring playing crews (C1) | Owns `invite_code`, default chip rate/currency (C4), `time_zone` (IANA, e.g. `Europe/London`), `discoverability` (private/link_only/listed), `join_policy` (invite_only/request_to_join). Soft-deletable. |
-| `group_members` | Membership + role | Roles: `owner` \| `admin` \| `member` (C3). `left_at` preserves history (C9). |
+| `group_members` | Membership + role | Roles: `owner` \| `admin` \| `host` \| `member` (extends C3 — see [Appendix C](#appendix-c-spec-contradictions-flagged)). `left_at` preserves history (C9). |
 | `seasons` | Time bucket within a group (C5–C7) | Stats partition only — not the default-rate layer (decision 3). |
 | `session_seasons` | Many-to-many session ↔ season | Composite PK `(session_id, season_id)`. See §4.3. |
 | `players` | Person who appears in this group's sessions | May or may not have `linked_user_id`. See §4.1 for binding. |
@@ -132,8 +124,7 @@ Building on [TECHNICAL_DESIGN.md §7](../../TECHNICAL_DESIGN.md). All IDs are UU
 | `cashouts` | Per-player end-of-night chips (A10) | Composite PK on (session_id, player_id). |
 | `families` | Session-scoped family grouping (A4) | Per-session. Aggregates settlement output only; **never** factors into P/L. |
 | `family_members` | Family → player association | |
-| `player_claim_requests` | User-initiated claims awaiting admin approval | See §6.1. |
-| `group_join_requests` | Post-v1 join-by-discovery requests | See §6.2. |
+| `group_join_requests` | Pending group admissions awaiting admin approval | Created for both invite-code redemption (v1) and post-v1 discovery. Admin's approval optionally merges previously-used guest players into the new user atomically. See §4.2 / §6.1. |
 | `stats_snapshots` | Cached B7–B10 leaderboards | JSONB payload. Refreshed by trigger on session settle + manual B11 (see §7.1). |
 | `pending_stat_refresh` | Coalescing queue for auto-refresh | One open row per (group, season). Drained by a cron Edge Function. |
 | `audit_log` | Append-only history of B5 edits, B6 deletes, D4 merges, role changes, claim/join decisions | Source of truth for §12 runbooks. |
@@ -145,32 +136,28 @@ Every name-only player (D2) is a `players` row with `linked_user_id IS NULL`. Bu
 - `players` carries a self-FK `merged_into_player_id` and is itself soft-deletable.
 - A view `effective_players` resolves any merged player_id to its canonical row. All stats reads go through `effective_players`; session-detail reads read raw `players` so the original guest name ("Jack") still appears on the night it was logged but credit accrues to the canonical player for aggregation.
 
-Three trigger paths share this one mechanism. They differ only in *who initiates* and *who decides*:
+Two trigger paths share this one mechanism in v1; a third arrives post-v1:
 
-- **Invite-driven claim with admin approval (v1 primary, §6.1).** User signs in through an invite, picks unlinked guests in onboarding, admin approves → merge runs.
-- **Admin-direct merge (v1 fallback).** Admin proactively cleans up without a user request. Same RPC body.
+- **Admin-driven merge during group-join approval (v1 primary, §6.1).** User redeems an invite code (or post-v1, requests to join). Admin reviews the join request, recognizes the new account as someone they know, optionally selects unlinked guest players to merge in via a search UI, and approves. The merge happens atomically inside the approval RPC. This is the path features.md decision 1 anticipated, now integrated with the admission flow rather than separated from it.
+- **Admin-direct merge (v1 cleanup, §6.1 closing note).** Admin proactively merges later — for guests that surface after the user is already in the group (an old session restored, a guest record missed at approval time). Same RPC body, different trigger.
 - **Auto-claim by user (D3, post-v1).** Same RPC, automatically triggered when a user signs in and an unambiguous email match exists.
 
 Unmerge is supported via an `admin_unmerge_player(player_id)` RPC that consults `audit_log` to restore prior state. A 7-day undo window is the recommended default.
 
-### 4.2 Claim requests and join requests
+### 4.2 Group join requests
 
-Two request tables sit in front of two destructive operations (player merge, group admission). They share an isomorphic state-machine shape; full column lists live in the per-component data-model doc (TBD).
+One request table sits in front of group admission. It is used for both invite-code redemption (v1) and post-v1 discovery. Full column list lives in the per-component data-model doc (TBD).
 
-**`player_claim_requests`** (created in onboarding, decided by group admin):
-
-- States: `pending → approved | rejected | withdrawn | superseded`.
-- One open `pending` request per (group, guest_player) — partial unique index.
-- `superseded` resolves three races atomically: two users claim the same guest; an admin-direct merge runs while a claim is pending; the guest is soft-deleted by the host.
-- A trigger on `group_members.left_at IS NOT NULL` auto-cancels the leaver's pending claims (releases the unique-pending slot, preserves audit).
-- An insert check requires `guest_player.linked_user_id IS NULL` and `merged_into_player_id IS NULL` at request time.
-
-**`group_join_requests`** (created post-v1 by would-be members, decided by group admin):
+**`group_join_requests`** (created by user action, decided by group admin):
 
 - States: `pending → approved | rejected | withdrawn`.
 - One open `pending` request per (group, user) — partial unique index.
+- `created_via`: `invite_code` (v1) or `discovery` (post-v1) — captures provenance for audit + later analytics.
 - RPC-level guard rejects creation if the user already has a live `group_members` row in the target group.
-- On approval, a `group_members` row is created and the user is routed into the §6.1 onboarding-with-claim flow. The two paths (invite-redemption and join-approval) share that downstream UX.
+- **Approval is the merge point.** `admin_approve_join_request(request_id, guest_player_ids_to_merge[])` runs atomically: creates the `group_members` row AND merges any selected guest players into the new user's canonical `players` row, in one transaction. The merge writes to `audit_log` per merged guest for unmerge support. Selecting zero guests is the common case (most new joiners have no prior history in the group).
+- **Rejection** with optional `decided_note` for the requester to read.
+
+A standalone admin merge (`admin_merge_players`) remains available for cleanup after the user is already in the group — see §4.1.
 
 ### 4.3 Multi-season membership
 
@@ -211,6 +198,7 @@ Both derivations are pure functions over the same raw rows; no schema change is 
 - `sessions.status = settled` does not freeze the row at the DB level. The freeze is *semantic*: stats reads ignore raw changes until a refresh runs (§7.1). This preserves B5/B6 edit capability while keeping stats stable.
 - Soft delete: rows with `deleted_at IS NOT NULL` are invisible to default queries. Every soft-delete-supporting table has a `live_*` view; every RLS policy reads through the view (or carries a `deleted_at IS NULL` predicate). Enforced by a per-table pgTAP test that asserts soft-deleted rows are unreadable under every role.
 - **Group ownership is non-orphanable.** A live group always has at least one `group_members` row with `role = 'owner'` and `left_at IS NULL`. The sole owner cannot leave; the leave-group RPC rejects with "transfer ownership or invite a co-owner first." Enforced at the RPC layer + a pgTAP test that attempts the orphan path under every role.
+- **Session creation requires host eligibility.** A new `sessions` row may only be inserted when the acting user's `group_members.role IN ('owner', 'admin', 'host')` for that group. `member` is play-only — they may be added to a session by an eligible creator but cannot start one. New joiners default to `member`; only the `owner` promotes to `host` or `admin`. Enforced by an RLS predicate on `sessions` INSERT plus a pgTAP test per role.
 - **Single timezone per group.** `groups.time_zone` (IANA) is the canonical interpretation surface for `sessions.played_on` (a date) and `seasons.starts_on`/`ends_on` (dates). The product assumes one physical game at a time per group at a single location; cross-zone "remote play" is out of scope. The column defaults to the group creator's timezone on create; editable by `owner`. Stats date-bucketing reads through this column, not the viewer's local time.
 
 ---
@@ -242,21 +230,21 @@ Realtime (Supabase websockets) is used selectively for the *spectator* view — 
 | Action | Authorized roles |
 |---|---|
 | Read a group's sessions, players, stats | Any live `group_members` row in the group |
-| Create a session | Any group member |
-| Edit / soft-delete a session (B5/B6) | Group `owner`/`admin` OR the host (linked user of `host_player_id`) (decision 2) |
-| Hard-edit roles, group settings | `owner` only |
+| Create a session | Group `owner`, `admin`, or `host` (not `member` — see §4.5 invariant) |
+| Edit / soft-delete a session (B5/B6) | Group `owner`/`admin` OR the host who ran the night (linked user of `host_player_id`) (decision 2) |
+| Promote/demote between `admin`, `host`, `member` | `owner` only |
+| Hard-edit other group settings | `owner` only |
 | Flip `groups.discoverability` or `groups.join_policy` | `owner` only |
-| Redeem an invite code | Any authenticated user; RPC creates the `group_members` row |
-| Create `player_claim_requests` | Any group member, for any unclaimed guest in that group |
-| Read pending claim requests | Requester (own) + group `owner`/`admin` |
-| Approve / reject / edit-approve claim requests | `owner`/`admin` via SECURITY DEFINER RPC |
-| Withdraw a claim request | Requester, while `status = pending` |
-| Create `group_join_requests` (post-v1) | Any authenticated user, on a `discoverability != private` group |
-| Approve / reject join requests (post-v1) | `owner`/`admin` via SECURITY DEFINER RPC |
-| Run D4 merge directly | `owner`/`admin`, via SECURITY DEFINER RPC |
+| Redeem an invite code | Any authenticated user; RPC creates a `group_join_requests` row (status `pending`), not a `group_members` row |
+| Create `group_join_requests` via discovery (post-v1) | Any authenticated user, on a `discoverability != private` group |
+| Approve a join request (with optional guest-merge) | `owner`/`admin` via `admin_approve_join_request` SECURITY DEFINER RPC; merge happens atomically with admission |
+| Reject a join request | `owner`/`admin` |
+| Withdraw a join request | Requester, while `status = pending` |
+| Read own `group_join_requests` (including `decided_note`) | Requester |
+| Read pending join requests for the group | `owner`/`admin` |
+| Run admin-direct `admin_merge_players` (post-admission cleanup) | `owner`/`admin` |
 | Run `admin_unmerge_player`, `season_backfill_by_date_range` | `owner`/`admin` |
 | Run B11 refresh | Any group member |
-| Read own `player_claim_requests` (including `decided_note`) | Requester |
 | Read `audit_log` for own actions | Self |
 | Read `audit_log` for the group | `owner`/`admin` |
 | Leave a group (C9) | Self, **provided the user is not the sole live `owner`**. The leave RPC rejects with "transfer ownership or invite a co-owner first" otherwise (see §4.5 invariant). |
@@ -270,23 +258,23 @@ D7 (group-wide visibility) and D8 (personal roll-up) are expressed as views:
 
 There is no cross-group leaderboard table or view — by construction, no path returns rows that mix groups except for the authenticated user's own data.
 
-### 6.1 Invite-driven onboarding & claim requests (v1 primary path)
+### 6.1 Invite-driven join + admin-merge flow (v1 primary path)
 
-When a new user signs in via an invite code, the redemption RPC creates the `group_members` row and routes the user into a **group onboarding** screen. The screen lists every `players` row in the group with `linked_user_id IS NULL`, `merged_into_player_id IS NULL`, `deleted_at IS NULL` and lets the user check zero or more guests they recognize as themselves. Submitting creates one `player_claim_requests` row per checked guest.
+When a new user signs in and redeems an invite code, the `redeem_invite` RPC creates a `group_join_requests` row with `status = 'pending'` and `created_via = 'invite_code'`. **No `group_members` row is created yet, and the user is not asked to pick any guest records.** The user lands on a "waiting for admin review" screen and can continue to use the rest of the app (other groups they're in, their own profile) while they wait.
 
-Group owners/admins see a "Pending claim requests" queue (web-emphasized per §3.1). Each request renders the requester's profile alongside the historical sessions where the guest appeared, so the admin can verify. An admin can:
+Group owners/admins see a "Pending join requests" queue in the native app. Each request renders the new user's profile (display name, email, when they redeemed) alongside a **search-and-pick** UI for unlinked guest players in the group: the admin types a name (or browses recent sessions) and ticks zero or more guests they recognize as the new user's prior identity in the group. The admin is the one making the call because the admin knows the group's history; the user typically doesn't.
 
-- **Approve as-is.** RPC `admin_approve_claim_request(request_id)` invokes the existing `admin_merge_players(target_user_id, guest_player_ids[])` body with the single guest, flips status to `approved`, writes audit.
-- **Approve with edits.** RPC `admin_approve_claim_request_with_edits(request_id, additional_guest_player_ids[])` includes adjacent guests the admin spots (user claimed "Jack"; admin notices "J.W." and "JackW" are the same person).
-- **Reject** with a note.
+The admin's decision options:
 
-The direct admin-driven merge (D4) remains available without a request, for proactive cleanup. Both paths write to `audit_log`. An admin running D4 directly on a guest with a pending claim resolves the claim atomically as `superseded` so the queue is never left holding a stale row.
+- **Approve.** `admin_approve_join_request(request_id, guest_player_ids_to_merge[])` runs atomically: creates the `group_members` row (default `role = 'member'`), runs `admin_merge_players` for each selected guest, writes `audit_log` rows for the admission and each merge. The new user transitions from "waiting" to "in the group" on next sign-in (or push, post-v1).
+- **Approve with no merge** — the common case for first-time joiners with no prior session history in the group.
+- **Reject** with an optional `decided_note`.
 
-**Onboarding UX defaults.** The claim picker is opt-in, never a gate. The primary call-to-action on the onboarding screen is "Skip — I'll do this later"; selecting guests is the secondary action. A new user joining a 5-year-old group with 200 unlinked guests should not be blocked at the doorway. From group settings the user can return to the picker at any time. The picker itself is scoped to the last 12 months of sessions by default with an "include older" expand, and each guest row shows session count + last played date to make recognition cheap.
+A standalone admin-direct merge (`admin_merge_players`) remains available *after* the user is in the group — for guest records that surface later (an old session restored, a guest not noticed at approval time). It runs the same `admin_merge_players` body and writes the same `audit_log` rows.
 
-**Decision feedback.** When an admin approves, rejects, or supersedes a claim, the requester sees the outcome via an in-app indicator (a badge on the group tile + a "Recent activity" entry on next sign-in). The requester reads their own `player_claim_requests` rows via RLS, including `decided_note`. A rejection note may indicate the requester should re-submit with a correction; the rejected status does not block creating a fresh request. Push notifications for decisions are post-v1 (Phase 5); the in-app indicator is the v1 mechanism.
+**Why admin-driven, not user-driven.** The admin knows who the new account is — they're the one who issued the invite (or recognized the user in a discovery request). They also know the group's history of "Jack" / "J.W." / "JackW". Asking the new user "which of these names was you?" puts the cognitive load on the wrong person, and a wrong tick is destructive. The search UI lives on the admin's side so the person with context makes the call, in the same flow as the approval they were already going to make.
 
-> *This refines features.md decision 1, which currently says "no user-initiated path in v1." The hybrid keeps admin gating (decision-1 spirit) while removing the discoverability barrier of the pure-admin flow (a new user has no way to ask). See [Appendix C](#appendix-c-spec-contradictions-flagged).*
+**Notification.** The requester sees the decision via an in-app indicator (badge on the group tile + a "Recent activity" entry) on next sign-in. They can read their own `group_join_requests` row including `decided_note` via RLS. Push notifications are post-v1 (Phase 5).
 
 ### 6.2 Forward-compatibility with public signup, discovery, and join requests
 
@@ -300,7 +288,7 @@ Three independent dimensions are parameterized from day one:
 
 Decision 7 ("no discovery, no public profiles") is preserved by construction: **users are never discoverable**; only *groups* can opt in, and only when their owner explicitly flips `discoverability` away from `private`. The "no public profiles" rule applies to people; a post-v1 directory lists groups (name + optional public note + size).
 
-When a join request is approved, the user enters the same §6.1 onboarding-with-claim flow. One mental model serves both invite-redemption and join-approval admission paths.
+Both invite-code and discovery paths converge on the same `group_join_requests` mechanism (§4.2, §6.1). Only the trigger differs: `redeem_invite` for v1 invite codes, a discovery-flow RPC for post-v1 directory submissions. The admin's approval UI — including the search-and-pick merge picker — is identical for both.
 
 ---
 
@@ -332,8 +320,8 @@ Concrete stack:
 | Layer | Choice | Why |
 |---|---|---|
 | Client framework | **Expo (managed) + React Native + Expo Router + TypeScript** | One codebase → iOS, Android, web. File-based routing. Solo-dev friendly. |
-| Web target | **Expo Web** (static export → Vercel) | Same codebase, admin-emphasized navigation per §3.1. |
-| Per-platform routing | **Expo Router `.web.tsx` / `.native.tsx` suffixes + `Platform.OS`-conditional nav** | Suffixes keep platform-divergent code from tangling; conditional nav cleanly skips screens irrelevant to a surface. |
+| Web target | **Expo Web** (static export → Vercel) | Same codebase, same screens; desktop convenience surface (§3.1). |
+| Per-platform routing | **Expo Router — shared routes by default**; `.native.tsx` / `.web.tsx` suffixes reserved for narrow API divergences (push, camera) | No per-platform UX split; one nav, one screen set, both targets render the same UI. |
 | Server cache + mutations | **TanStack Query + Zustand** | TanStack handles optimistic updates + retries; Zustand for transient UI state. |
 | Offline storage | **expo-sqlite** (queue + cache) + **MMKV** (small KV) | Real local DB for the mutation queue + cached snapshots. |
 | Styling | **NativeWind (Tailwind for RN)** + RN primitives | Utility-first ports cleanly across native and web. |
@@ -356,10 +344,10 @@ The current Playwright suite at [app/tests/integration/](../../app/tests/integra
 Layers:
 
 - **Unit (vitest).** Calc modules port from JS to TypeScript with minimal annotation. Pure functions cover `pnl_per_player_per_session`, `settlement_amount`, family aggregation, greedy minimization, chip-math, dinner-share computation. Property tests (`fast-check`) for two invariants: settle-to-zero (settlement transfers net to zero or to the pot rebalance total) and dinner-out-of-pnl (P/L equals cashout × rate − buyin × rate regardless of dinner data).
-- **RLS policy tests (pgTAP or `supabase test db`).** Highest-leverage layer. Every D6/D7 policy + the new request-table policies gets a test: "a `member` cannot soft-delete a session"; "an `admin` can edit any session in the group"; "a user in group A cannot read group B's sessions"; "a guest player is invisible to a non-member of its group"; "a non-member cannot create a `player_claim_requests` row"; "approving a claim request when another approved request already merged the guest results in `superseded`."
+- **RLS policy tests (pgTAP or `supabase test db`).** Highest-leverage layer. Every D6/D7 policy + the `group_join_requests` policies gets a test: "a `member` cannot soft-delete a session"; "a `member` cannot create a session (host-eligibility gate)"; "an `admin` can edit any session in the group"; "a user in group A cannot read group B's sessions"; "a guest player is invisible to a non-member of its group"; "an outsider cannot read another user's pending join request"; "approving a join request with a guest already merged into someone else fails atomically (no partial admission)."
 - **Component / store tests.** React Native Testing Library + MSW for mocked Supabase responses. Verifies optimistic mutations, queue flush, retry behavior.
-- **Web E2E (Playwright).** Port existing scenarios against Expo Web. New scenarios: group create, invite redeem + onboarding claim submission, claim approval queue, session list, B11 refresh, B5 edit + stale-stats indicator, season backfill.
-- **Native E2E (Maestro).** Recommended over Detox — YAML flows, no native build coupling, cleaner CI. Same scenario library on iOS/Android. **Include at least one approval-queue scenario** so the native rendering of web-emphasized screens doesn't bit-rot.
+- **Web E2E (Playwright).** Port existing scenarios against Expo Web. New scenarios: group create, invite redeem (creates pending join request) + admin approval with optional guest-merge, session list, B11 refresh, B5 edit + stale-stats indicator, season backfill.
+- **Native E2E (Maestro).** Recommended over Detox — YAML flows, no native build coupling, cleaner CI. Same scenario library on iOS/Android. Cover the live-session six-tab flow, offline-then-online queue flush, and the admin approval queue (all admin work is native — §3.1).
 - **Migration smoke tests.** Every PR: `supabase db reset` against the staging schema, run a seed script, verify a small read against each table.
 
 ---
@@ -447,15 +435,16 @@ Post-v1 (not v1): Sentry session replay (privacy-masked — money is sensitive),
 1. **EAS Update governance.** OTA JS updates bypass store review for non-native changes but must respect store policies. A short release checklist is mandatory.
 2. **App Store review lead time.** First submission is 1–3 days; plan v1 launch around this.
 3. **Expo Web compatibility shims.** Some RN libraries don't render on web. Commit to a web-compatible shortlist (NativeWind, expo-router, react-native-svg, react-native-gesture-handler) early; reject anything that can't render on web.
-4. **D4 / claim-request approval as the highest-stakes destructive flow.** `audit_log` retention + `admin_unmerge_player` RPC + a 7-day undo window are mandatory. Confirm undo window before ship.
+4. **Approval-time merge is the highest-stakes destructive flow.** During join approval the admin ticks guest records to merge into the new user; a mistaken tick collapses two different people's history into one account. `audit_log` retention + `admin_unmerge_player` RPC + a 7-day undo window are mandatory. Confirm undo window before ship.
 5. **B5 edits-without-resettle invalidate snapshots silently.** §7.1 auto-refreshes on settle and on re-settle, but a pure post-settlement edit (B5 without a status cycle) does not auto-publish. The "Sessions edited since last refresh: N" indicator on the group page nudges the host to either re-settle the affected session or invoke B11 manually. Without the indicator, users will trust stale leaderboards — treat as a launch blocker for Phase 3.
 6. **D8 (personal cross-group roll-up) ships in raw money; "stakes vary" caveat renders conditionally.** V1 ships D8 as raw per-group P/L (each group displayed in its own currency, plus a simple total in the user's home currency if set). The "stakes vary across groups; raw P/L may not reflect true performance" caveat renders **only when the user's groups have non-identical `chip_count × chip_money` rates** — for groups at identical stakes the warning is noise. The features.md D8 stake-normalization formula remains "Open" and stays in Backlog; the schema requires no change to add it later.
 7. **Soft-delete + RLS interaction.** Every policy needs a `deleted_at IS NULL` predicate or must read from a `live_*` view. Easy to forget; mitigate with a code convention and pgTAP coverage on every policy.
-8. **Claim-request onboarding UX.** A new user staring at 200 guest names has a needle-in-haystack problem. Mitigations: limit the picker to recent sessions (last 12 months), surface session counts and last-played dates, accept zero claims (user completes onboarding without claiming anything and requests claims later from group settings).
+8. **Admin search-and-pick UI quality.** The admin's "which old guests are this new user?" decision is only as good as the search/scan affordances on the approval card. Show: guest name + last-played date + session count, with recency-weighted ordering and a typeahead. Default to no-merge (approve cleanly is one tap; merging is opt-in). Without good affordances, the admin will skip merges and leave duplicates in leaderboards — the very thing this flow exists to prevent.
 9. **Season-membership backfill.** Explicit season membership (§4.3) means a new "2026" season created mid-March looks empty for January–February sessions until the host runs `season_backfill_by_date_range`. The UI must surface this; otherwise the season appears mis-configured.
 10. **Discoverability is a privacy escalator.** Flipping a group from `private` to `listed` (post-v1) should require an admin confirmation modal naming every consequence (the group's name + member count appear in a directory; join requests start arriving). V1 cannot ship the directory; v1 *can* ship the schema, but the admin UI hides the `listed` option until the directory launches.
-11. **Web-emphasized screens become native afterthoughts.** Admin approval queues will see less native testing because they're easier to design on a wide screen. An admin away from their laptop will need to approve from a phone — the native rendering of approval queues must be usable, not just present. Mitigate by including at least one approval-queue scenario in the Maestro native E2E suite (§9).
-12. **Claim-decision notification channel.** Without push (post-v1, Phase 5), a requester learns the admin's decision only on next sign-in. The in-app indicator (§6.1) is the v1 mechanism; the requester does not receive an email and does not get a real-time notification. **Accepted for v1** — the broken handshake is tolerable for a friends-of-friends audience. Adding push (Phase 5) closes the loop; no architectural change is needed beyond enabling expo-notifications + a Supabase Edge Function fan-out.
+11. **Claim-decision notification channel.** Without push (post-v1, Phase 5), a requester learns the admin's decision only on next sign-in. The in-app indicator (§6.1) is the v1 mechanism; the requester does not receive an email and does not get a real-time notification. **Accepted for v1** — the broken handshake is tolerable for a friends-of-friends audience. Adding push (Phase 5) closes the loop; no architectural change is needed beyond enabling expo-notifications + a Supabase Edge Function fan-out.
+12. **Host-role assignment friction.** New joiners default to `member` (play-only). If an owner forgets to promote a returning regular to `host` before the next night, that user cannot start the session. Mitigations: surface a "Promote to host?" affordance on the join-approval card so the owner makes both decisions at once; on the session-create screen, render a clear "you are not host-eligible — ask the owner" message rather than a hidden disabled button; allow group invites to carry a default role hint (post-v1 enhancement). Track usage to confirm `member` vs `host` distribution matches PM intent.
+13. **Invite-code redemption no longer auto-admits.** Under the new PM-confirmed flow, a valid invite code creates a `pending` `group_join_requests` row rather than a `group_members` row — the user waits for admin approval. For fast-responding admins (typical friends-of-friends) this is seconds to minutes; for slow admins it can be hours. Mitigations: a "Waiting for [admin name] to approve you" screen that explains the wait clearly; allow the user to keep using other groups they're already in; consider an opt-in email nudge to the admin via a Supabase Edge Function on request creation. Push notifications (Phase 5) close the loop; until then, the wait is visible but not pushed.
 
 ---
 
@@ -463,11 +452,11 @@ Post-v1 (not v1): Sentry session replay (privacy-masked — money is sensitive),
 
 Each phase is a few weeks of solo-dev work; an implementation plan partitions it further.
 
-- **Phase 0 — Foundation.** Repo skeleton (Expo + TS), Supabase projects, auth flow, group create / invite redemption RPC / minimal onboarding screen with `player_claim_requests` creation AND a minimal admin approval action (single-button approve from a list — full queue UX waits for Phase 4). Empty session shell, calc modules ported to TS (with the P/L vs settlement split, §4.4), CI green. Goal: a signed-in user can create a group, invite a friend, accept the invite, request a claim, and have the host approve it end-to-end.
+- **Phase 0 — Foundation.** Repo skeleton (Expo + TS), Supabase projects, auth flow, group create / `redeem_invite` RPC (creates pending `group_join_requests` row) / minimal admin approval action (single-button approve, no guest-merge UI — the full search-and-pick lands in Phase 4). Empty session shell, calc modules ported to TS (with the P/L vs settlement split, §4.4), CI green. Goal: a signed-in user can create a group, invite a friend, the friend redeems the invite, and the owner approves them into the group end-to-end.
 - **Phase 1 — Session parity.** Full session screen (six tabs) writing to real DB. Buy-ins, dinners, cash-outs, families, settle. Offline write queue. The host's night-of experience matches the prototype, persistent. Goal: replace the prototype HTML for one friend group. **The Supabase API surface stabilizes here.**
 - **Phase 2 — History + groups.** Session list, session detail read-only view (B3, B4), group settings with default rate/currency (C4), seasons (C5–C7) including `session_seasons` UI and `season_backfill_by_date_range`. Goal: "browse past nights" works.
 - **Phase 3 — Stats + sharing + direct admin merge.** B7–B11 leaderboards via `stats_snapshots`, auto-refresh on settlement and on `session_seasons` change (§7.1), D5 participant read-only view, D7 group-wide visibility, D8 personal roll-up (raw money, conditional "stakes vary" message), "stats stale" indicator. Ships the **direct admin merge UI (D4)** so admins can clean up guest duplicates the moment leaderboards launch — otherwise Phase 3 leaderboards would show "Jack" / "J.W." / "JackW" as three rows for weeks. Goal: the success criteria in [overview.md](../spec/overview.md) ("who's up the most this season") works in one tap, and leaderboards are accurate at launch.
-- **Phase 4 — Identity reconciliation polish.** Full claim-request approval queue (web-emphasized) with admin notes, approve-with-edits, side-by-side history pane. Audit-log surfacing, B5 edit + B6 soft-delete UX with the "edited since refresh" indicator wired up, `admin_unmerge_player` UX. Goal: a guest from session 1 can become a real account in session 20 and see their full history, and admins have ergonomic tools for the destructive flows.
+- **Phase 4 — Identity reconciliation polish.** Full join-approval queue (native) with the **search-and-pick guest-merge UI** described in §6.1: typeahead, recency-weighted ordering, session-count badges, side-by-side requester profile + candidate guests. Audit-log surfacing, B5 edit + B6 soft-delete UX with the "edited since refresh" indicator wired up, `admin_unmerge_player` UX. Role-management UI for promote/demote between `admin`, `host`, `member` (§6 matrix). Goal: a guest from session 1 can become a real account in session 20 and see their full history; admins have ergonomic tools for destructive flows; owners can designate who's host-eligible.
 - **Phase 5 — Post-v1.** D3 auto-claim by email match (independent of the items below); `groups.discoverability = listed` + directory UI + `group_join_requests` flow (independent); F1–F4 settlement tracking + generic expenses (independent); D8 stake normalization (independent); opening up public signup if warranted (independent); native push notifications (independent). These ship as separate increments — any one can land without the others.
 
 The architectural payoff for the Supabase-centric choice lands at Phase 1: the data layer and API surface are stable from that point on. Every phase after that layers features onto the same backend.
@@ -534,6 +523,10 @@ During architecture design, four points emerged where the user-confirmed v2 arch
 
 1. **C7 — "A session belongs to exactly one season."** The v2 architecture supports many-to-many session ↔ season via `session_seasons` (§4.3). C7 should generalize.
 2. **A12 — "net = cash out − buyins − share + paid."** A12 as written describes the *settlement* formula. v2 separates `pnl` (no dinner) and `settlement_amount` (includes dinner) per §4.4. A12 should be re-worded as the settlement formula, with a new entry for P/L.
-3. **Decision 1 — "no user-initiated path in v1."** The v2 primary path is invite-driven onboarding with a user-initiated claim *request* and admin approval (§6.1). The admin still gates the destructive write (preserving decision 1's intent) but the claim itself is user-initiated. Decision 1 should be reworded to admit the hybrid.
-4. **Decision 7 — "no discovery, no public profiles."** v2 preserves "no public user profiles" exactly but supports per-group opt-in discoverability for the post-v1 directory (§6.2). Decision 7 should be tightened to apply specifically to people, not groups.
-5. **C2 — "Invite people to a group via link or code (invite-only, no discovery)."** Same shape as decision 7 above and resolved by the same wording fix: invite + link are the v1 entry points; opt-in per-group discovery (`discoverability = listed` + `join_policy = request_to_join`) activates post-v1 without altering decision 7's spirit.
+3. **Decision 7 — "no discovery, no public profiles."** v2 preserves "no public user profiles" exactly but supports per-group opt-in discoverability for the post-v1 directory (§6.2). Decision 7 should be tightened to apply specifically to people, not groups.
+4. **C2 — "Invite people to a group via link or code (invite-only, no discovery)."** Same shape as decision 7 above and resolved by the same wording fix: invite + link are the v1 entry points; opt-in per-group discovery (`discoverability = listed` + `join_policy = request_to_join`) activates post-v1 without altering decision 7's spirit.
+5. **C3 — "Group has owner, admins, and members. Member is a play-only role."** v2 introduces a fourth role tier `host` between `admin` and `member`. Hosts can create and edit their own sessions; members cannot create sessions (play-only). Motivation: product manager feedback that not every group member should be able to start a game. The hierarchy becomes `owner > admin > host > member`; new joiners default to `member` and the `owner` promotes. C3 should be reworded to enumerate the four roles.
+
+**Resolved divergences** (previously listed; now aligned with the spec after the PM's admin-driven merge flow update — kept for traceability):
+
+- *Decision 1 — "no user-initiated path in v1."* Earlier drafts of this doc allowed a user-side claim picker (hybrid of D3 + D4). The current architecture (§6.1) is fully admin-driven: the user redeems an invite and waits; the admin alone selects guest records during approval. This matches decision 1's intent exactly. No spec change required.
