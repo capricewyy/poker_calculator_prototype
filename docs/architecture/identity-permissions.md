@@ -52,8 +52,8 @@ Three Supabase projects, each with its own auth settings. Configured via Supabas
 | Environment | Google OAuth client | Apple OAuth client | Magic-link redirect URL |
 |---|---|---|---|
 | `local-dev` | dev-only Google OAuth client (or the staging one, with `localhost` redirect added) | not configured (Apple Sign-In requires production-style domain) | `http://localhost:8081/auth/callback` |
-| `staging` | dedicated Google OAuth client; redirect `https://staging.pokernight.app/auth/callback` and `pokernight://auth/callback` | dedicated Apple Service ID + Key; redirect same as Google | `https://staging.pokernight.app/auth/callback` |
-| `prod` | dedicated Google OAuth client; redirect `https://pokernight.app/auth/callback` and `pokernight://auth/callback` | dedicated Apple Service ID + Key; redirect same as Google | `https://pokernight.app/auth/callback` |
+| `staging` | dedicated Google OAuth client; redirect `https://staging.pokernight.cards/auth/callback` and `pokernight://auth/callback` | dedicated Apple Service ID + Key; redirect same as Google | `https://staging.pokernight.cards/auth/callback` |
+| `prod` | dedicated Google OAuth client; redirect `https://pokernight.cards/auth/callback` and `pokernight://auth/callback` | dedicated Apple Service ID + Key; redirect same as Google | `https://pokernight.cards/auth/callback` |
 
 Per-env OAuth client IDs and secrets are stored as Supabase project secrets (Dashboard → Project Settings → API) and are never in the repo. The deep-link scheme `pokernight://` is registered in `app.json` per Expo conventions; the OAuth callback handler bridges deep-link back to the JS layer via `expo-auth-session`.
 
@@ -594,7 +594,7 @@ Bucketed into **code changes**, **platform setup**, and **manual input**. Where 
 **Manual input required:**
 
 - **OAuth client creation** (Google × 3 envs, Apple × 2 envs). Each requires interactive console + paying $99 Apple Developer fee for prod. **One-time cost.**
-- **`/invite/<code>` URL scheme:** confirm `https://pokernight.app/invite/<code>` redirects appropriately for both signed-in and signed-out users. Configure via Vercel rewrites + Expo Web routing.
+- **`/invite/<code>` URL scheme:** confirm `https://pokernight.cards/invite/<code>` redirects appropriately for both signed-in and signed-out users. Configure via Vercel rewrites + Expo Web routing.
 - **First-user bootstrap:** confirm the trigger `tg_on_auth_user_created` (§2.4) fires on every provider and populates `public.users` correctly. Smoke-test once per provider per env at launch.
 
 ### Phase 1 — Session parity (identity)

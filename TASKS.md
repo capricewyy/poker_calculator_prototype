@@ -12,31 +12,31 @@ Merged from [docs/architecture/db-backend.md](docs/architecture/db-backend.md) �
 
 ## 0. Pre-requisites (do once, before Phase 0)
 
-### 0.1 Local CLI tools
+### 0.1 Local CLI tools ✅
 
-| ID | Type | Task | Notes |
-|---|---|---|---|
-| P0.1.1 | 🟧 | Install Homebrew (macOS) | `https://brew.sh/`. Skip if already installed. |
-| P0.1.2 | 🟧 | Install Node ≥ 20 + npm | `brew install node` or volta/nvm. Required by Supabase CLI + Expo. |
-| P0.1.3 | 🟧 | Install Supabase CLI | `brew install supabase/tap/supabase`. Verify: `supabase --version`. |
-| P0.1.4 | 🟧 | Install Docker Desktop | Needed by `supabase start` (local Postgres + GoTrue). |
-| P0.1.5 | 🟧 | Install GitHub CLI | `brew install gh`. Login: `gh auth login`. |
-| P0.1.6 | 🟧 | Install Expo CLI / EAS CLI | `npm i -g expo eas-cli`. Required from Phase 0 PR-0.1 onward. |
-| P0.1.7 | 🟧 | Install Deno (for Edge Functions local dev) | `brew install deno`. Used by `supabase functions serve`. |
+| ID | Done | Type | Task | Notes |
+|---|---|---|---|---|
+| P0.1.1 | ✅ | 🟧 | Install Homebrew (macOS) | `https://brew.sh/`. Skip if already installed. |
+| P0.1.2 | ✅ | 🟧 | Install Node ≥ 20 + npm | `brew install node` or volta/nvm. Required by Supabase CLI + Expo. |
+| P0.1.3 | ✅ | 🟧 | Install Supabase CLI | `brew install supabase/tap/supabase`. Verify: `supabase --version`. |
+| P0.1.4 | ✅ | 🟧 | Install Docker Desktop | Needed by `supabase start` (local Postgres + GoTrue). |
+| P0.1.5 | ✅ | 🟧 | Install GitHub CLI | `brew install gh`. Login: `gh auth login`. |
+| P0.1.6 | ✅ | 🟧 | Install Expo CLI / EAS CLI | `npm i -g expo eas-cli`. Required from Phase 0 PR-0.1 onward. |
+| P0.1.7 | ✅ | 🟧 | Install Deno (for Edge Functions local dev) | `brew install deno`. Used by `supabase functions serve`. |
 
 ### 0.2 Platform accounts / signups
 
-| ID | Type | Task | Cost | Notes |
-|---|---|---|---|---|
-| P0.2.1 | 🟧 | Supabase account | Free for dev, **$25/mo per prod project** at Phase 4 (PITR) | One org, three projects later (see P0.3). |
-| P0.2.2 | 🟧 | GitHub repo + Actions enabled | Free | Already exists; confirm Actions enabled. |
-| P0.2.3 | 🟧 | Google Cloud Console project | Free | For Google OAuth client IDs (3, one per env). |
-| P0.2.4 | 🟧 | Apple Developer Program enrollment | **$99/yr** | Required for Apple Sign-In on iOS. Skip until before staging launch. |
-| P0.2.5 | 🟧 | Sentry org + project | Free tier | Used from Phase 1 (PR-1.1) onward. |
-| P0.2.6 | 🟧 | Better Stack account (uptime monitor) | Free tier | Used from Phase 1. |
-| P0.2.7 | 🟧 | Backblaze B2 account + bucket | Pennies/mo | Used in Phase 4 for weekly logical dumps. |
-| P0.2.8 | 🟧 | Vercel account (for web `pokernight.app` host + invite-link routing) | Free | Used at Phase 0 for `/invite/<code>` URL handling. |
-| P0.2.9 | 🟧 | EAS / Expo account | Free for dev builds | Phase 0 client builds. |
+| ID | Done | Type | Task | Cost | Notes |
+|---|---|---|---|---|---|
+| P0.2.1 | ✅ | 🟧 | Supabase account | Free for dev, **$25/mo per prod project** at Phase 4 (PITR) | Org `N&C` (free). Two cloud projects (staging + prod); local-dev is CLI-only. |
+| P0.2.2 | ✅ | 🟧 | GitHub repo + Actions enabled | Free | `capricewyy/poker_calculator_prototype`; Actions live (workflows present). |
+| P0.2.3 | ✅ | 🟧 | Google Cloud Console project | Free | GCP project created; staging + prod OAuth Web clients live. |
+| P0.2.4 |  | 🟧 | Apple Developer Program enrollment | **$99/yr** | Required for Apple Sign-In on iOS. Skip until before staging launch. |
+| P0.2.5 |  | 🟧 | Sentry org + project | Free tier | Used from Phase 1 (PR-1.1) onward. |
+| P0.2.6 |  | 🟧 | Better Stack account (uptime monitor) | Free tier | Used from Phase 1. |
+| P0.2.7 |  | 🟧 | Backblaze B2 account + bucket | Pennies/mo | Used in Phase 4 for weekly logical dumps. |
+| P0.2.8 |  | 🟧 | Vercel account (for web `pokernight.cards` host + invite-link routing) | Free | Used at Phase 0 for `/invite/<code>` URL handling. |
+| P0.2.9 |  | 🟧 | EAS / Expo account | Free for dev builds | Phase 0 client builds. |
 
 ### 0.3 One-time decisions (resolve before Phase 0 SQL is written)
 
@@ -44,8 +44,8 @@ Merged from [docs/architecture/db-backend.md](docs/architecture/db-backend.md) �
 |---|---|---|---|
 | P0.3.1 | 🟧 | Invite-code format | 12-char base32 (db-backend §14 Phase 0 manual). |
 | P0.3.2 | 🟧 | First-owner bootstrap | First signed-in caller of `create_group` becomes owner of the new group (identity-permissions §14). |
-| P0.3.3 | 🟧 | Project names in Supabase | `poker-night-local-dev`, `poker-night-staging`, `poker-night-prod`. |
-| P0.3.4 | 🟧 | Production domain | `pokernight.app` (staging: `staging.pokernight.app`). |
+| P0.3.3 | 🟧 | Project names in Supabase | ✅ `poker-night-staging` (ref `ejxgpmutndhdsmquasaa`), `poker-night-prod` (ref `kdzdddwtqmyrouyjoqud`); local-dev is CLI-only (no cloud project). |
+| P0.3.4 | ✅ | Production domain | **`pokernight.cards`** (staging: `staging.pokernight.cards`) — **purchased 2026-06-21 via Cloudflare Registrar** (expires 2027-06-21; auto-renew recommended). Changed from `pokernight.app` (already taken). Wired into Supabase `site_url`/redirect allowlists on staging + prod. DNS → Vercel still TODO at 0.B.4. |
 
 ---
 
@@ -55,29 +55,37 @@ Goal: schema, RLS, RPCs, fixtures, auth handoff, the `create_group` + `redeem_in
 
 ### 0.A — Supabase platform setup
 
-| ID | Type | Task | → deps |
-|---|---|---|---|
-| 0.A.1 | 🟪 | Create three Supabase projects (`local-dev` is CLI-only via `supabase start`; create `staging` and `prod` in dashboard) | P0.1.3, P0.2.1, P0.3.3 |
-| 0.A.2 | 🟪 | Enable `pgcrypto`, `pg_cron`, `citext` extensions in each project (Dashboard → Database → Extensions) | 0.A.1 |
-| 0.A.3 | 🟪 | Generate per-project `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN`; store in GitHub Actions secrets | 0.A.1 |
-| 0.A.4 | 🟪 | Configure auth providers in each Supabase project: enable Google, Apple, email magic-link (Dashboard → Authentication → Providers) | 0.A.1, 0.B.1, 0.B.2 |
+| ID | Done | Type | Task | → deps |
+|---|---|---|---|---|
+| 0.A.1 | ✅ | 🟪 | Create Supabase projects (`local-dev` is CLI-only via `supabase start`; `staging` + `prod` in dashboard). Staging ref `ejxgpmutndhdsmquasaa`, prod ref `kdzdddwtqmyrouyjoqud`. | P0.1.3, P0.2.1, P0.3.3 |
+| 0.A.2 | ✅ | 🟪 | Enable `pgcrypto`, `pg_cron`, `citext` extensions in each project (Dashboard → Database → Extensions) | 0.A.1 |
+| 0.A.3 | ✅ | 🟪 | Generate per-project `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN`; store in GitHub Actions secrets | 0.A.1 |
+| | | | ↳ Keys in local `.env`; 7 secrets pushed to GitHub Actions (access token, staging+prod project refs, service_role keys, DB passwords). Validated: access token lists both projects (ACTIVE_HEALTHY); anon + service_role keys authenticate for staging + prod. | |
+| 0.A.4 | ✅* | 🟪 | Configure auth providers in each Supabase project: enable Google, Apple, email magic-link (Dashboard → Authentication → Providers) | 0.A.1, 0.B.1, 0.B.2 |
+| | | | ↳ ✅ email magic-link enabled; `site_url` + redirect allowlist (`pokernight://auth/callback`, app domains, localhost:8081) set on staging + prod. ✅ Google enabled + verified (`/auth/v1/settings` reports google; `/authorize` redirects to accounts.google.com with per-env client ID). ⏸️ Apple deferred to staging launch (0.B.2). *= complete except deferred Apple. | |
 
 ### 0.B — OAuth provider setup (manual + platform)
 
-| ID | Type | Task | → deps |
-|---|---|---|---|
-| 0.B.1 | 🟪 | Google Cloud Console: create 3 OAuth 2.0 client IDs (dev/staging/prod). Register redirect URIs per identity-permissions §2.2 | P0.2.3 |
-| 0.B.2 | 🟪 | Apple Developer: create Service ID + Key for staging + prod (skip local-dev) | P0.2.4 |
-| 0.B.3 | 🟪 | Store Google + Apple client secrets in Supabase project secrets (Dashboard → Project Settings → API) | 0.A.1, 0.B.1, 0.B.2 |
-| 0.B.4 | 🟪 | Configure Vercel rewrite so `https://pokernight.app/invite/<code>` (and staging) serves the invite-redemption page | P0.2.8, P0.3.4 |
+| ID | Done | Type | Task | → deps |
+|---|---|---|---|---|
+| 0.B.1 | ✅ | 🟪 | Google Cloud Console: create 3 OAuth 2.0 client IDs (dev/staging/prod). Register redirect URIs per identity-permissions §2.2 | P0.2.3 |
+| | | | ↳ ✅ staging + prod Web clients created (redirect URI = Supabase `/auth/v1/callback`); IDs/secrets in `.env`. ⬜ dev client deferred to local-auth wiring. | |
+| 0.B.2 | ⏸️ | 🟪 | Apple Developer: create Service ID + Key for staging + prod (skip local-dev) | P0.2.4 |
+| | | | ↳ **DEFERRED to staging launch** (user decision 2026-06-21). Needs Apple Developer enrollment (P0.2.4, $99/yr). | |
+| 0.B.3 | ✅* | 🟪 | Store Google + Apple client secrets in Supabase project secrets (Dashboard → Project Settings → API) | 0.A.1, 0.B.1, 0.B.2 |
+| | | | ↳ ✅ Google client ID + secret pushed to staging + prod via Management API. ⏸️ Apple part deferred with 0.B.2. | |
+| 0.B.4 | ⏸️ | 🟪 | Configure Vercel rewrite so `https://pokernight.cards/invite/<code>` (and staging) serves the invite-redemption page | P0.2.8, P0.3.4 |
+| | | | ↳ **DEFERRED.** Domain ✅ purchased (P0.3.4). Now blocked only on Vercel account (P0.2.8). | |
 
 ### 0.C — Repo scaffolding
 
-| ID | Type | Task | → deps |
-|---|---|---|---|
-| 0.C.1 | 🟦 | **PR `repo-scaffold`**: add `supabase/` dir with `config.toml`, empty `migrations/`, `tests/`, `functions/`. Add `Makefile` targets `db-reset`, `db-test`, `gen-types`. | P0.1.3 |
-| 0.C.2 | 🟦 | **PR `expo-init`**: bootstrap Expo app (TS, expo-router) in `app/` (preserve prototype under `legacy/` per existing layout). Register `pokernight://` scheme in `app.json`. Install `@supabase/supabase-js`, `expo-auth-session`. | P0.1.6 |
-| 0.C.3 | 🟦 | **PR `env-config`**: add `.env.example` (Supabase URL + anon key for each env), wire `app.config.ts` to read env. **Never** commit secrets. | 0.C.2, 0.A.1 |
+| ID | Done | Type | Task | → deps |
+|---|---|---|---|---|
+| 0.C.1 | ✅ | 🟦 | **PR `repo-scaffold`**: add `supabase/` dir with `config.toml`, empty `migrations/`, `tests/`, `functions/`. Add `Makefile` targets `db-reset`, `db-test`, `gen-types`. | P0.1.3 |
+| | | | ↳ `supabase init` done; `migrations/`/`tests/`/`functions/` created (`.gitkeep`); `Makefile` (db-reset/db-test/gen-types + start/stop/status) smoke-tested. `supabase start` healthy; `LOCAL_*` keys filled in `.env`. Generated types gitignored. | |
+| 0.C.2 |  | 🟦 | **PR `expo-init`**: bootstrap Expo app (TS, expo-router) in `app/` (preserve prototype under `legacy/` per existing layout). Register `pokernight://` scheme in `app.json`. Install `@supabase/supabase-js`, `expo-auth-session`. | P0.1.6 |
+| 0.C.3 | 🔄 | 🟦 | **PR `env-config`**: add `.env.example` (Supabase URL + anon key for each env), wire `app.config.ts` to read env. **Never** commit secrets. | 0.C.2, 0.A.1 |
+| | | | ↳ ✅ `.env` (git-ignored) + `.env.example` (committed template) + `.gitignore` rule created, prefilled with staging/prod refs + URLs. ⬜ Still TODO: `app.config.ts` wiring (needs 0.C.2 Expo app first). | |
 
 ### 0.D — Migrations (DB schema + policies + RPCs)
 
