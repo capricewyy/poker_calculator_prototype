@@ -1,0 +1,11 @@
+# Supabase
+.branches
+.temp
+
+# Generated TS types (regenerate with `make gen-types`)
+types/
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

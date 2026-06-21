@@ -3,3 +3,8 @@ test-results/
 playwright-report/
 .playwright/
 .DS_Store
+
+# Secrets — never commit. Use .env.example as the committed template.
+.env
+.env.local
+.env.*.local
